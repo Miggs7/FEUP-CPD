@@ -155,8 +155,8 @@ void OnMultBlock(int m_ar, int m_br, int bkSize)
 		for(j=0; j<m_br; j++)
 			phb[i*m_br + j] = (double)(i+1);
 	
-	
 	Time1 = clock();
+	
     for (int i = 0; i < m_ar; i += bkSize) {
         for (int j = 0; j < m_ar; j += bkSize) {
             for (int k = 0; k < m_ar; k += bkSize) {
@@ -260,59 +260,142 @@ int main (int argc, char *argv[])
    		col = lin;
 
 
-		// Start counting
-		ret = PAPI_start(EventSet);
-		if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
 		
 		switch (op){
 			case 1: 
+				ret = PAPI_start(EventSet);
+				if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+				
 				OnMult(lin, col);
+
+				ret = PAPI_stop(EventSet, values);
+				if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+				printf("L1 DCM: %lld \n",values[0]);
+				printf("L2 DCM: %lld \n",values[1]);
+
+				ret = PAPI_reset( EventSet );
+				if ( ret != PAPI_OK )
+				std::cout << "FAIL reset" << endl; 
 				break;
 			case 2:
-				OnMultLine(lin, col);  
+				ret = PAPI_start(EventSet);
+				if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+				
+				OnMultLine(lin, col);
+				
+				ret = PAPI_stop(EventSet, values);
+				if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+				printf("L1 DCM: %lld \n",values[0]);
+				printf("L2 DCM: %lld \n",values[1]);
+
+				ret = PAPI_reset( EventSet );
+				if ( ret != PAPI_OK )
+				std::cout << "FAIL reset" << endl;   
 				break;
 			case 3:
 				cout << "Block Size? ";
 				cin >> blockSize;
-				OnMultBlock(lin, col, blockSize);  
+
+				ret = PAPI_start(EventSet);
+				if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+
+				OnMultBlock(lin, col, blockSize);
+
+				ret = PAPI_stop(EventSet, values);
+				if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+				printf("L1 DCM: %lld \n",values[0]);
+				printf("L2 DCM: %lld \n",values[1]);
+
+				ret = PAPI_reset( EventSet );
+				if ( ret != PAPI_OK )std::cout << "FAIL reset" << endl; 
 				break;
 			case 4:
 				for (int i = 600; i <= 3000; i+=400) {
 					cout << "Dimension i =" << i << endl;
+
+					ret = PAPI_start(EventSet);
+					if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+				
 					OnMult(i, i);
+					
+					ret = PAPI_stop(EventSet, values);
+					if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+					printf("L1 DCM: %lld \n",values[0]);
+					printf("L2 DCM: %lld \n",values[1]);
+
+					ret = PAPI_reset( EventSet );
+					if ( ret != PAPI_OK )std::cout << "FAIL reset" << endl; 
 				}
 				break;
 			case 5:
 				for (int i = 600; i <= 3000; i+=400) {
 					cout << "Dimension i =" << i << endl;
+
+					ret = PAPI_start(EventSet);
+					if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+				
 					OnMultLine(i, i);
+
+					ret = PAPI_stop(EventSet, values);
+					if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+					printf("L1 DCM: %lld \n",values[0]);
+					printf("L2 DCM: %lld \n",values[1]);
+
+					ret = PAPI_reset( EventSet );
+					if ( ret != PAPI_OK )std::cout << "FAIL reset" << endl; 
 				}
 				break;
 			case 6:
 				for (int i = 4096; i <= 10240; i+=2048) {
 					cout << "Dimension i =" << i << endl;
+					
+					ret = PAPI_start(EventSet);
+					if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+				
 					OnMultLine(i, i);
+
+					ret = PAPI_stop(EventSet, values);
+					if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+					printf("L1 DCM: %lld \n",values[0]);
+					printf("L2 DCM: %lld \n",values[1]);
+
+					ret = PAPI_reset( EventSet );
+					if ( ret != PAPI_OK )std::cout << "FAIL reset" << endl; 
 				}
+
 				break;
 			case 7:
-				cout << "Block Size = ?" << endl;
-				cin >> blockSize;
+
 				for (int i = 4096; i <= 10240; i+=2048) {
+					for( int k = 0; k <= 2; k++ ){
+					if (k == 0)
+						blockSize = 128;
+					if (k == 1)
+						blockSize = 256;
+					if (k == 2)
+						blockSize = 512;
+
 					cout << "Dimension i =" << i << endl;
+					cout << "BlockSize = " << blockSize << endl;
+
+					ret = PAPI_start(EventSet);
+					if (ret != PAPI_OK) cout << "ERROR: Start PAPI" << endl;
+				
 					OnMultBlock(i, i, blockSize);
+
+					ret = PAPI_stop(EventSet, values);
+					if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
+					printf("L1 DCM: %lld \n",values[0]);
+					printf("L2 DCM: %lld \n",values[1]);
+
+					ret = PAPI_reset( EventSet );
+					if ( ret != PAPI_OK )std::cout << "FAIL reset" << endl; 
+					}
 				}
 				break;
 
 		}
-		
-  		ret = PAPI_stop(EventSet, values);
-  		if (ret != PAPI_OK) cout << "ERROR: Stop PAPI" << endl;
-  		printf("L1 DCM: %lld \n",values[0]);
-  		printf("L2 DCM: %lld \n",values[1]);
 
-		ret = PAPI_reset( EventSet );
-		if ( ret != PAPI_OK )
-			std::cout << "FAIL reset" << endl; 
 	
 
 	}while (op != 0);
