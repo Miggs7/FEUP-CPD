@@ -277,19 +277,19 @@ int main (int argc, char *argv[])
 				OnMultBlock(lin, col, blockSize);  
 				break;
 			case 4:
-				for (int i = 600; i < 3000; i+=400) {
+				for (int i = 600; i <= 3000; i+=400) {
 					cout << "Dimension i =" << i << endl;
 					OnMult(i, i);
 				}
 				break;
 			case 5:
-				for (int i = 600; i < 3000; i+=400) {
+				for (int i = 600; i <= 3000; i+=400) {
 					cout << "Dimension i =" << i << endl;
 					OnMultLine(i, i);
 				}
 				break;
 			case 6:
-				for (int i = 4096; i < 10240; i+=2048) {
+				for (int i = 4096; i <= 10240; i+=2048) {
 					cout << "Dimension i =" << i << endl;
 					OnMultLine(i, i);
 				}
@@ -297,7 +297,7 @@ int main (int argc, char *argv[])
 			case 7:
 				cout << "Block Size = ?" << endl;
 				cin >> blockSize;
-				for (int i = 4096; i < 10240; i+=2048) {
+				for (int i = 4096; i <= 10240; i+=2048) {
 					cout << "Dimension i =" << i << endl;
 					OnMultBlock(i, i, blockSize);
 				}
