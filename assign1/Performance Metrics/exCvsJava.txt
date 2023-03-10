@@ -1,0 +1,76 @@
+Exercicio 1 C++ vs JAVA
+
+Matrix 600x600
+Measured Time:0,5260
+
+ 
+Matrix 1000x1000
+Measured Time:5,0430
+
+
+Matrix 1400x1400
+Measured Time:16,9540
+
+
+Matrix 1800x1800
+Measured Time:40,1370
+
+
+Matrix 2200x2200
+Measured Time:87,2990
+
+
+Matrix 2600x2600
+Measured Time:143,4300
+
+
+Matrix 3000x3000
+Measured Time:244,5320
+
+
+
+Exercicio 2a) C++ vs JAVA
+
+
+Matrix 600x600
+Measured Time:0,3380
+
+
+Matrix 1000x1000
+Measured Time:1,5590
+
+
+Matrix 1400x1400
+Measured Time:1,8460
+
+
+Matrix 1800x1800
+Measured Time:3,8740
+
+
+Matrix 2200x2200
+Measured Time:7,3560
+
+
+Matrix 2600x2600
+Measured Time:11,8890
+
+
+Matrix 3000x3000
+Measured Time:18,5830
+
+
+Matrix 4096x4096
+Measured Time:105.61
+
+
+Matrix 6144x6144
+Measured Time:379.905
+
+
+Matrix 8192x8192
+Measured Time:908.857
+
+
+Matrix 10240x10240
+Measured Time:1771.236
