@@ -1,4 +1,4 @@
-package server;
+
 
 import java.io.*;
 import java.net.*;
@@ -7,16 +7,15 @@ import java.util.Map;
 
 
 public class Server {
-    private static final String DB_FILE = "data/users.db"; // path to user database file
-    private static Map<String, String> userDB = new HashMap<>();
+    private static Map<String, String> userData = new HashMap<>();
 
     public static void main(String args[]) throws Exception {
-        loadUserDB(); // load user database from file
+        loadUserData(); // load user database from file
     
         ServerSocket server = new ServerSocket(5000);
         System.out.println("Server started");
-    
-        Socket s = server.accept();
+        while (true) {
+            Socket s = server.accept();
         System.out.println("Connected");
     
         DataInputStream dis = new DataInputStream(s.getInputStream());
@@ -55,16 +54,21 @@ public class Server {
                 dos.writeUTF(str2);
                 dos.flush();
             }
+            }
+            dis.close();
+            s.close();
+            server.close();
+            saveUserData(); // save user database to a file
+
         }
-        dis.close();
-        s.close();
-        server.close();
+        
+        
+        
     
-        saveUserDB(); // save user database to file
     }
     
     private static boolean authenticate(String username, String password) {
-        String storedPassword = userDB.get(username);
+        String storedPassword = userData.get(username);
     
         if (storedPassword != null && storedPassword.equals(password)) {
             return true;
@@ -74,43 +78,37 @@ public class Server {
     }
     
     private static boolean register(String username, String password) {
-        if (userDB.containsKey(username)) {
+        if (userData.containsKey(username)) {
             return false; // username already exists
         } else {
-            userDB.put(username, password);
+            userData.put(username, password);
             return true;
         }
     }
     
-    private static void loadUserDB() throws IOException {
-        File file = new File(DB_FILE);
-    
-        if (file.exists()) {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line;
-    
-            while ((line = reader.readLine()) != null) {
-                String[] tokens = line.split(":");
-                String username = tokens[0];
-                String password = tokens[1];
-                userDB.put(username, password);
-            }
-    
-            reader.close();
-        }
+    private static void loadUserData() throws IOException {
+        userData = new HashMap<>();
+        userData.put("admin", "admin123");
+        userData.put("user", "user123");
     }
     
-    private static void saveUserDB() throws IOException {
-        File file = new File(DB_FILE);
-        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-    
-        for (Map.Entry<String, String> entry : userDB.entrySet()) {
-            String username = entry.getKey();
-            String password = entry.getValue();
-            writer.write(username + ":" + password);
-            writer.newLine();
+    private static void saveUserData() throws IOException{
+        FileOutputStream fos = null;
+        try {
+            File file = new File("userData.txt");
+            fos = new FileOutputStream(file);        
+            for (Map.Entry<String, String> entry : userData.entrySet()) {
+                String username = entry.getKey();
+                String password = entry.getValue();
+                String line = username + " " + password + "\n";
+                fos.write(line.getBytes());
+            }
+        } finally {
+            if (fos != null) {
+                fos.close();
+            }
         }
-    
-        writer.close();   
+
+        
     }
 }
