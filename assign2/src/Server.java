@@ -2,68 +2,87 @@
 
 import java.io.*;
 import java.net.*;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import model.Game;
 
 
 public class Server {
     private static Map<String, String> userData = new HashMap<>();
 
+    //server
+    private ServerSocket server;
+    
+    //clients
+    private static List<ServerThread> clients = new ArrayList<>();
+
+    //game
+    private Game game;
+
+
+
     public static void main(String args[]) throws Exception {
         loadUserData(); // load user database from file
-    
-        ServerSocket server = new ServerSocket(5000);
+        
+        try (ServerSocket server = new ServerSocket(5000)) {
         System.out.println("Server started");
         while (true) {
             Socket s = server.accept();
-        System.out.println("Connected");
+            System.out.println("A client has connected.");
+            ServerThread serverThread = new ServerThread(s, clients);
+
+            clients.add(serverThread);
+            serverThread.start();
+
+            DataInputStream dis = new DataInputStream(s.getInputStream());
+            DataOutputStream dos = new DataOutputStream(s.getOutputStream());
     
-        DataInputStream dis = new DataInputStream(s.getInputStream());
-        DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            
+            String str = "", str2 = "";
     
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            while (!str.equals("stop")) {
+                str = dis.readUTF();
     
-        String str = "", str2 = "";
+                if (str.startsWith("login")) {
+                    String[] tokens = str.split("\\s");
+                    String username = tokens[1];
+                    String password = tokens[2];
     
-        while (!str.equals("stop")) {
-            str = dis.readUTF();
+                    if (authenticate(username, password)) {
+                        dos.writeUTF("login_success");
+                    } else {
+                        dos.writeUTF("login_failed");
+                    }
+                } else if (str.startsWith("register")) {
+                    String[] tokens = str.split("\\s");
+                    String username = tokens[1];
+                    String password = tokens[2];
     
-            if (str.startsWith("login")) {
-                String[] tokens = str.split("\\s");
-                String username = tokens[1];
-                String password = tokens[2];
-    
-                if (authenticate(username, password)) {
-                    dos.writeUTF("login_success");
+                    if (register(username, password)) {
+                        dos.writeUTF("register_success");
+                    } else {
+                        dos.writeUTF("register_failed");
+                    }
                 } else {
-                    dos.writeUTF("login_failed");
+                    System.out.println("Client says: " + str);
+                    str2 = br.readLine();
+                    dos.writeUTF(str2);
+                    dos.flush();
                 }
-            } else if (str.startsWith("register")) {
-                String[] tokens = str.split("\\s");
-                String username = tokens[1];
-                String password = tokens[2];
-    
-                if (register(username, password)) {
-                    dos.writeUTF("register_success");
-                } else {
-                    dos.writeUTF("register_failed");
-                }
-            } else {
-                System.out.println("Client says: " + str);
-                str2 = br.readLine();
-                dos.writeUTF(str2);
-                dos.flush();
-            }
             }
             dis.close();
             s.close();
             server.close();
-            saveUserData(); // save user database to a file
-
+            saveUserData(); // save user data to a file
         }
         
         
-        
+        }
     
     }
     
@@ -109,6 +128,8 @@ public class Server {
             }
         }
 
-        
+        private int authenticateMode() {
+
+        }
     }
 }
