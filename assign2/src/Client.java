@@ -1,28 +1,55 @@
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.util.Scanner;
 
+public class Client {
 
-import java.io.*;
-import java.net.*;
+    private SocketChannel socketChannel;
 
-class Client {
-    public static void main(String args[]) throws Exception {
-        Socket s = new Socket("localhost", 5000);
-        DataInputStream dis = new DataInputStream(s.getInputStream());
-        DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+    public Client(String host, int port) throws IOException {
+        socketChannel = SocketChannel.open();
+        socketChannel.configureBlocking(false);
+        socketChannel.connect(new InetSocketAddress(host, port));
+    }
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    public void start() throws IOException {
+        System.out.println("Connected to server.");
 
-        String str = "", str2 = "";
-
-        while (!str.equals("stop")) {
-            System.out.println("Enter command (login or register), followed by username and password (separated by space): ");
-            str = br.readLine();
-            dos.writeUTF(str);
-            dos.flush();
-            str2 = dis.readUTF();
-            System.out.println("Server says: " + str2);
+        while (!socketChannel.finishConnect()) {
+            // Wait for the connection to be established
         }
 
-        dis.close();
-        s.close();
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            String message = scanner.nextLine();
+
+            if (message.equals("exit")) {
+                break;
+            }
+
+            ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+            socketChannel.write(buffer);
+
+            buffer.clear();
+            socketChannel.read(buffer);
+
+            byte[] bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+            String response = new String(bytes);
+            System.out.println("Server response: " + response);
+        }
+
+        socketChannel.close();
+        System.out.println("Disconnected from server.");
+    }
+
+    public static void main(String[] args) throws IOException {
+        String host = "localhost";
+        int port = 8080;
+        Client client = new Client(host, port);
+        client.start();
     }
 }
