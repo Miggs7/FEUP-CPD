@@ -6,19 +6,29 @@ import java.util.LinkedList;
 
 
 public class Player{
+    private int playerID;
     private String playerName = null;
     private boolean MyTurn = false;
     private boolean saidUNO = false;
     private LinkedList<String> myCards; //to Do String as a placeholder for UNOcard
 
 
-    public Player(String name){
+    public Player(String name, int id){
+        setId(id);
         setName(name);
         myCards = new LinkedList<String>();
     }
 
     public void setName(String name){
         playerName = name;
+    }
+
+    public void setId(int id){
+        playerID = id;
+    }
+
+    public int getId(){
+        return this.playerID;
     }
 
     public String getName(){
