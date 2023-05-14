@@ -1,7 +1,9 @@
 import java.util.Scanner;
 
+import java.util.List;
+
 public class Hangman {
-    private static final String[] WORDS = {"hangman", "java", "programming", "openai", "computer"};
+    private static final String[] WORDS = {"hangman", "java", "programming", "openai", "computer", "algorithm", "optimization"};
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -9,6 +11,7 @@ public class Hangman {
         char[] guessedLetters = new char[word.length()];
         int numAttempts = 0;
         int maxAttempts = 6;
+        Player player = new Player("UsernameDefault", 1);
 
         while (true) {
             System.out.println("Guess a letter: ");
@@ -22,7 +25,32 @@ public class Hangman {
             if (word.contains(String.valueOf(letter))) {
                 updateGuessedLetters(letter, word, guessedLetters);
                 if (isWordGuessed(guessedLetters)) {
+                    int score = 0;
+                    switch(numAttempts){
+                        case 0:
+                            score = 100;
+                            break;
+                        case 1: 
+                            score = 75;
+                            break;
+                        case 2:
+                            score = 50;
+                            break;
+                        case 3:
+                            score = 35;
+                            break;
+                        case 4:
+                            score = 20;
+                            break;
+                        case 5:
+                            score = 10;
+                            break;
+                        default:
+                            break;
+                    }
+                    player.addScore(score);
                     System.out.println("Congratulations! You guessed the word: " + word);
+                    System.out.println("Your score is " + String.valueOf(player.getScore()));
                     break;
                 }
             } else {
