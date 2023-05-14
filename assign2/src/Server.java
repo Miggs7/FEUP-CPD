@@ -1,135 +1,151 @@
-
-
 import java.io.*;
 import java.net.*;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import model.Game;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 
 public class Server {
-    private static Map<String, String> userData = new HashMap<>();
+   
+    private ServerSocketChannel serverSocketChannel;
+    private Selector selector;
+    private Map<String, String> users = new HashMap<String, String>();
+    private List<SocketChannel> connectedClients;
 
-    //server
-    private ServerSocket server;
+    private ExecutorService threadPool;
     
-    //clients
-    private static List<ServerThread> clients = new ArrayList<>();
+    public Server(int port) throws IOException {
+        serverSocketChannel = ServerSocketChannel.open();
+        serverSocketChannel.bind(new InetSocketAddress(port));
+        selector = Selector.open();
+        serverSocketChannel.configureBlocking(false);
+        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-    //game
-    private Game game;
-
-
-
-    public static void main(String args[]) throws Exception {
-        loadUserData(); // load user database from file
-        
-        try (ServerSocket server = new ServerSocket(5000)) {
-        System.out.println("Server started");
-        while (true) {
-            Socket s = server.accept();
-            System.out.println("A client has connected.");
-            ServerThread serverThread = new ServerThread(s, clients);
-
-            clients.add(serverThread);
-            serverThread.start();
-
-            DataInputStream dis = new DataInputStream(s.getInputStream());
-            DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-    
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            
-            String str = "", str2 = "";
-    
-            while (!str.equals("stop")) {
-                str = dis.readUTF();
-    
-                if (str.startsWith("login")) {
-                    String[] tokens = str.split("\\s");
-                    String username = tokens[1];
-                    String password = tokens[2];
-    
-                    if (authenticate(username, password)) {
-                        dos.writeUTF("login_success");
-                    } else {
-                        dos.writeUTF("login_failed");
-                    }
-                } else if (str.startsWith("register")) {
-                    String[] tokens = str.split("\\s");
-                    String username = tokens[1];
-                    String password = tokens[2];
-    
-                    if (register(username, password)) {
-                        dos.writeUTF("register_success");
-                    } else {
-                        dos.writeUTF("register_failed");
-                    }
-                } else {
-                    System.out.println("Client says: " + str);
-                    str2 = br.readLine();
-                    dos.writeUTF(str2);
-                    dos.flush();
-                }
-            }
-            dis.close();
-            s.close();
-            server.close();
-            saveUserData(); // save user data to a file
-        }
-        
-        
-        }
-    
+        threadPool = Executors.newFixedThreadPool(10);
+        connectedClients = new ArrayList<SocketChannel>();
     }
-    
-    private static boolean authenticate(String username, String password) {
-        String storedPassword = userData.get(username);
-    
-        if (storedPassword != null && storedPassword.equals(password)) {
-            return true;
-        } else {
-            return false;
+
+    public String register(String username, String password) {
+        if (users.containsKey(username)) {
+            return "Username already exists.";
         }
+        return "Registration successful.";
     }
-    
-    private static boolean register(String username, String password) {
-        if (userData.containsKey(username)) {
-            return false; // username already exists
-        } else {
-            userData.put(username, password);
-            return true;
+
+    public String authenticate(String username, String password, SocketChannel clientChannel) {
+        if (!users.containsKey(username) || !users.get(username).equals(password)) {
+            return "Invalid username or password.";
         }
+
+        connectedClients.add(clientChannel);
+        return "Authentication successful.";
     }
-    
-    private static void loadUserData() throws IOException {
-        userData = new HashMap<>();
-        userData.put("admin", "admin123");
-        userData.put("user", "user123");
-    }
-    
-    private static void saveUserData() throws IOException{
-        FileOutputStream fos = null;
+
+    private String handleRequest(SocketChannel socketChannel) {
+        String response = "";
         try {
-            File file = new File("userData.txt");
-            fos = new FileOutputStream(file);        
-            for (Map.Entry<String, String> entry : userData.entrySet()) {
-                String username = entry.getKey();
-                String password = entry.getValue();
-                String line = username + " " + password + "\n";
-                fos.write(line.getBytes());
+            ByteBuffer buffer = ByteBuffer.allocate(1024);
+            int bytesRead = socketChannel.read(buffer);
+            if (bytesRead == -1) {
+                throw new IOException("Client has disconnected.");
             }
-        } finally {
-            if (fos != null) {
-                fos.close();
+
+            // Read
+            buffer.flip();
+
+            // Print
+            System.out.println("Received message from client: " + new String(buffer.array(), 0, buffer.limit()));
+            String[] fields = new String(buffer.array(), 0, buffer.limit()).split(":");
+            String command = fields[0];
+
+            // Handle authentication
+            if (command.equals("authenticate")) {
+                String username = fields[1];
+                String password = fields[2];
+
+                response = authenticate(username, password, socketChannel);
+            }
+
+            // Handle registration
+            else if (command.equals("register")) {
+                String username = fields[1];
+                String password = fields[2];
+
+                response = register(username, password);
+            }
+
+            // Handle other requests
+            else {
+                response = "Invalid command.";
+            }
+            
+
+        } catch (IOException e) {
+            System.err.println("Client has disconnected abruptly: " + e.getMessage());
+            try {
+                socketChannel.close();
+            } catch (IOException ex) {
+                System.err.println("Error closing client socket: " + ex.getMessage());
+            }
+        }
+        
+        return response;
+       
+    }
+
+    public void start() throws IOException {
+        System.out.println("Server started.");
+
+        // authenticate or register
+        while (true) {
+            selector.select();
+
+            Set<SelectionKey> selectedKeys = selector.selectedKeys();
+            Iterator<SelectionKey> iter = selectedKeys.iterator();
+
+            while (iter.hasNext()) {
+                SelectionKey key = iter.next();
+
+                if (key.isAcceptable()) {
+                    SocketChannel clientChannel = serverSocketChannel.accept();
+                    System.out.println("New client connected: " + clientChannel.getRemoteAddress());
+                    clientChannel.configureBlocking(false);
+                    clientChannel.register(selector, SelectionKey.OP_READ);
+                } else if (key.isReadable()) {
+                    SocketChannel clientChannel = (SocketChannel) key.channel();
+                    System.out.println("New message from client: " + clientChannel.getRemoteAddress());
+                    String response = handleRequest(clientChannel);
+                    ByteBuffer buffer = ByteBuffer.wrap(response.getBytes());
+                    clientChannel.write(buffer);
+                }
+                iter.remove();
             }
         }
 
-        private int authenticateMode() {
+        // game?
 
+    }
+
+    public void stop() throws IOException {
+        threadPool.shutdown();
+        serverSocketChannel.close();
+
+        for (SocketChannel clientChannel : connectedClients) {
+            clientChannel.close();
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            int port = 5000;
+            Server server = new Server(port);
+            server.register("user1", "password1");
+            server.register("user2", "password2");
+            server.start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
