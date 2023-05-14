@@ -10,6 +10,9 @@ public class Hangman {
         int numAttempts = 0;
         int maxAttempts = 6;
 
+        System.out.println("");
+
+
         while (true) {
             System.out.println("Guess a letter: ");
             char letter = scanner.next().charAt(0);
