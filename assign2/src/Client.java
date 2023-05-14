@@ -1,18 +1,22 @@
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.Scanner;
+    import java.io.*;
+    import java.net.*;
+    import java.nio.ByteBuffer;
+    import java.nio.channels.*;
+    import java.util.*;
+    import java.util.concurrent.*;
 
-public class Client {
 
+    public class Client {
     private SocketChannel socketChannel;
+    private Selector selector;
     private boolean authenticated = false;
 
     public Client(String host, int port) throws IOException {
         socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
         socketChannel.connect(new InetSocketAddress(host, port));
+        selector = Selector.open();
+        socketChannel.register(selector, SelectionKey.OP_READ);
     }
 
     public void start() throws IOException {
@@ -22,66 +26,93 @@ public class Client {
             // wait for connection to be established
         }
 
-        // authentication
-        Scanner scanner = new Scanner(System.in);
-        String username = null;
-        String password = null;
+        while (!authenticated) {
+            // authentication
+            Scanner scanner = new Scanner(System.in);
+            String username = null;
+            String password = null;
+            String token = null;
 
-
-        do {
             System.out.print("Enter 'register' to register or 'authenticate' to authenticate: ");
             String command = scanner.nextLine();
 
-            if (command.equals("register")) {
-                System.out.print("Enter username: ");
-                username = scanner.nextLine();
-                System.out.print("Enter password: ");
-                password = scanner.nextLine();
-
-                // Send the registration request to the server
-                String message = "register:" + username + ":" + password;
-                ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
-                socketChannel.write(buffer);
-
-                // Wait for the response from the server
-
-                buffer.clear();
-                socketChannel.read(buffer);
-
-                byte[] bytes = new byte[buffer.position()];
-                buffer.flip();
-                buffer.get(bytes);
-                String response = new String(bytes);
-                System.out.println(response);
-            } else if (command.equals("authenticate")) {
-                System.out.print("Enter username: ");
-                username = scanner.nextLine();
-                System.out.print("Enter password: ");
-                password = scanner.nextLine();
-
-                // Send the authentication request to the server
-                String message = "authenticate:" + username + ":" + password;
-                ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
-                socketChannel.write(buffer);
-
-                // Wait for the response from the server
-
-                buffer.clear();
-                socketChannel.read(buffer);
-
-                byte[] bytes = new byte[buffer.position()];
-                buffer.flip();
-                buffer.get(bytes);
-                String response = new String(bytes);
-                System.out.println(response);
-
-                if (response.equals("Authentication successful.")) {
-                    authenticated = true;
-                }
-            } else {
-                System.out.println("Invalid command.");
+            // Validate the command
+            switch (command) {
+                case "register":
+                case "authenticate":
+                    System.out.println("Valid command. Processing");
+                    break;
+                default:
+                    System.out.println("Invalid command.");
+                    continue;
             }
-        } while (!authenticated);
+
+            System.out.print("Enter username: ");
+            username = scanner.nextLine();
+            System.out.print("Enter password: ");
+            password = scanner.nextLine();
+            
+            if (command.equals("authenticate")) {
+                token = obtainToken(username);
+            }
+
+            // Send the message to the server
+            switch (command) {
+                case "register":
+                    String message = command + ":" + username + ":" + password;
+                    System.out.println("Sending message to server: " + message);
+                    ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+                    socketChannel.write(buffer);
+                    break;
+                case "authenticate":
+                    message = command + ":" + username + ":" + password + ":" + token;
+                    System.out.println("Sending message to server: " + message);
+                    buffer = ByteBuffer.wrap(message.getBytes());
+                    socketChannel.write(buffer);
+                    break;
+            }
+
+            // Read the response from the server
+            int channels = selector.select();
+                if (channels == 0) {
+                    continue;
+            }
+
+            Set<SelectionKey> selectedKeys = selector.selectedKeys();
+            Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
+
+            //System.out.println(keyIterator);
+
+            while (keyIterator.hasNext()) {
+                SelectionKey key = keyIterator.next();
+                String response = null;
+
+                if (key.isReadable()) {
+                    SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+                    ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
+                    int bytesRead = serverSocketChannel.read(responseBuffer);
+                    if (bytesRead == -1) {
+                        serverSocketChannel.close();
+                        key.cancel();
+                        continue;
+                    }
+                    response = new String(responseBuffer.array(), 0, bytesRead);
+                    responseBuffer.clear();
+                }
+                keyIterator.remove();
+                System.out.println("Received response: " + response);
+                if (response.contains("Token")) {
+                    System.out.println("Registration successful.");
+                    saveToken(username, response);
+                    break;
+                }
+                if (response.equals("Authentication successful.")) {
+                    System.out.println("Authentication successful.");
+                    authenticated = true;
+                    break;
+                }
+            }
+        }
 
         // game
 
@@ -99,10 +130,51 @@ public class Client {
         // System.out.println("Disconnected from server.");
     }
 
-    public static void main(String[] args) throws IOException {
-        String host = "localhost";
-        int port = 5000;
-        Client client = new Client(host, port);
-        client.start();
+
+    public static void main(String[] args) {
+        try{
+            String host = "localhost";
+            int port = 5000;
+            Client client = new Client(host, port);
+            client.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    String obtainToken(String username) {
+        String token = null;
+
+        try {
+            File file = new File("local.txt");
+            FileInputStream fis = new FileInputStream(file);
+            BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                String[] fields = line.split(" ");
+                if (fields[0].equals(username)) {
+                    token = fields[1];
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return token;
+    }
+
+    void saveToken(String username, String response) {
+        String token = response.substring(6, response.length());
+        try {
+            File file = new File("local.txt");
+            FileWriter fw = new FileWriter(file, true);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(username + " " + token + "\n");
+            bw.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
