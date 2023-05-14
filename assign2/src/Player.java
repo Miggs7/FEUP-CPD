@@ -36,4 +36,5 @@ public class Player{
     public int getScore(){
         return this.playerScore;
     }
+
 }
