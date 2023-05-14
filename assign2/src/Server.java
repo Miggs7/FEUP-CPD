@@ -4,14 +4,14 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.security.*;
 
 
 public class Server {
    
     private ServerSocketChannel serverSocketChannel;
     private Selector selector;
-    private Map<String, String> users = new HashMap<String, String>();
-    private List<SocketChannel> connectedClients;
+    private Map<String, SocketChannel> connectedClients;
 
     private ExecutorService threadPool;
     
@@ -23,22 +23,57 @@ public class Server {
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
         threadPool = Executors.newFixedThreadPool(10);
-        connectedClients = new ArrayList<SocketChannel>();
+        connectedClients = new HashMap<String, SocketChannel>();
     }
 
     public String register(String username, String password) {
+        // when registering, open the server.txt and retrieve the usernames, passwords and tokens
+        Map<String, List<String>> users = obtainInfo();
+
         if (users.containsKey(username)) {
             return "Username already exists.";
         }
-        return "Registration successful.";
+
+        SecureRandom random = new SecureRandom();
+        byte bytes[] = new byte[20];
+        random.nextBytes(bytes);
+        String token = bytes.toString();
+
+        try {
+            File file = new File("server.txt");
+            FileWriter fw = new FileWriter(file, true);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(username + " " + password + " " + token);
+            bw.newLine();
+            bw.close();
+        } catch (IOException e) {
+            System.out.println("Error writing to server.txt");
+        }
+        
+        return "Token:" + token;
     }
 
-    public String authenticate(String username, String password, SocketChannel clientChannel) {
-        if (!users.containsKey(username) || !users.get(username).equals(password)) {
-            return "Invalid username or password.";
+    public String authenticate(String username, String password, String token, SocketChannel clientChannel) {
+        Map<String, List<String>> users = obtainInfo();
+
+        if (!users.containsKey(username)) {
+            return "Username does not exist.";
         }
 
-        connectedClients.add(clientChannel);
+        List<String> info = users.get(username);
+        if (!info.get(0).equals(password)) {
+            return "Incorrect password.";
+        }
+
+        if (!info.get(1).equals(token)) {
+            return "Incorrect token.";
+        }
+
+        if (connectedClients.containsKey(username)) {
+            return "User already logged in.";
+        }
+
+        connectedClients.put(username, clientChannel);
         return "Authentication successful.";
     }
 
@@ -63,8 +98,9 @@ public class Server {
             if (command.equals("authenticate")) {
                 String username = fields[1];
                 String password = fields[2];
-
-                response = authenticate(username, password, socketChannel);
+                String token = fields[3];
+                
+                response = authenticate(username, password, token, socketChannel);
             }
 
             // Handle registration
@@ -73,6 +109,7 @@ public class Server {
                 String password = fields[2];
 
                 response = register(username, password);
+                System.out.println("Register response:" + response);
             }
 
             // Handle other requests
@@ -80,18 +117,26 @@ public class Server {
                 response = "Invalid command.";
             }
             
-
         } catch (IOException e) {
-            System.err.println("Client has disconnected abruptly: " + e.getMessage());
-            try {
+            try{
+                SelectionKey key = socketChannel.keyFor(selector);
+                System.out.println("Client disconnected: " + socketChannel.getRemoteAddress());
+                key.cancel();
                 socketChannel.close();
+                
             } catch (IOException ex) {
-                System.err.println("Error closing client socket: " + ex.getMessage());
+                System.out.println("Error closing socket channel.");
+            }
+            // remove the client from the connected clients
+            for (Map.Entry<String, SocketChannel> entry : connectedClients.entrySet()) {
+                if (entry.getValue().equals(socketChannel)) {
+                    connectedClients.remove(entry.getKey());
+                    break;
+                }
             }
         }
-        
+
         return response;
-       
     }
 
     public void start() throws IOException {
@@ -107,6 +152,10 @@ public class Server {
             while (iter.hasNext()) {
                 SelectionKey key = iter.next();
 
+                if (!key.isValid()) {
+                    continue;
+                }
+
                 if (key.isAcceptable()) {
                     SocketChannel clientChannel = serverSocketChannel.accept();
                     System.out.println("New client connected: " + clientChannel.getRemoteAddress());
@@ -114,24 +163,28 @@ public class Server {
                     clientChannel.register(selector, SelectionKey.OP_READ);
                 } else if (key.isReadable()) {
                     SocketChannel clientChannel = (SocketChannel) key.channel();
+                    
                     System.out.println("New message from client: " + clientChannel.getRemoteAddress());
                     String response = handleRequest(clientChannel);
+                    System.out.println("Sending message to client: " + response);
                     ByteBuffer buffer = ByteBuffer.wrap(response.getBytes());
+
+                    if (!clientChannel.isConnected()) {
+                        System.out.println("Client is disconnected.");
+                        continue;
+                    }
                     clientChannel.write(buffer);
                 }
                 iter.remove();
             }
         }
-
-        // game?
-
     }
 
     public void stop() throws IOException {
         threadPool.shutdown();
         serverSocketChannel.close();
 
-        for (SocketChannel clientChannel : connectedClients) {
+        for (SocketChannel clientChannel : connectedClients.values()) {
             clientChannel.close();
         }
     }
@@ -140,12 +193,40 @@ public class Server {
         try {
             int port = 5000;
             Server server = new Server(port);
-            server.register("user1", "password1");
-            server.register("user2", "password2");
             server.start();
 
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.err.println("Error server: " + e.getMessage());
             e.printStackTrace();
         }
+        
+    }
+
+    Map<String, List<String>> obtainInfo() {
+        Map<String, List<String>> users = new HashMap<String, List<String>>();
+        try {
+            File file = new File("server.txt");
+            FileInputStream fis = new FileInputStream(file);
+            BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                String[] fields = line.split(" ");
+                String username_save = fields[0];
+                String password_save = fields[1];
+                String token_save = fields[2];
+
+                //user info is a list that contains password and token
+                List<String> userInfo = new ArrayList<String>();
+                userInfo.add(password_save);
+                userInfo.add(token_save);
+
+                users.put(username_save, userInfo);
+            }
+            br.close();
+        } catch (IOException e) {
+            System.out.println("Error reading server.txt");
+        }
+        return users;
     }
 }
