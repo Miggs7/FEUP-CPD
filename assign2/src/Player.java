@@ -1,7 +1,7 @@
 
 public class Player{
     private int playerID;
-    private static String playerName = null;
+    private String playerName = null;
     private int playerScore = 0;
 
 
@@ -11,7 +11,7 @@ public class Player{
     }
 
     public void setName(String name){
-        playerName = name;
+        this.playerName = name;
     }
 
     public void setId(int id){
@@ -23,7 +23,7 @@ public class Player{
     }
 
     public String getName(){
-        return playerName;        
+        return this.playerName;        
     }
 
     public void addScore(int num){
@@ -34,12 +34,8 @@ public class Player{
         return this.playerScore;
     }
 
-    public static String getNameById(int id){
+    /*public static String getNameById(int id){
         return playerName;
-    }
-
-    public Player getPlayerById(int id){
-        return this;
-    }
+    }*/
 
 }

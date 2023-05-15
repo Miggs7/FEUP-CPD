@@ -118,7 +118,7 @@ import java.io.*;
 
         while (true) {
             System.out.println("Waiting for game to start...");
-            //Hangman.runGame(socketChannel);
+            Hangman.runGame(socketChannel);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {

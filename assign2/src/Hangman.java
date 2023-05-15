@@ -9,21 +9,32 @@ public class Hangman {
     public static List<Player> connectedPlayers = Server.players;
     public static Map<String,SocketChannel> sessionConnectedClients = Server.sessionConnectedClients;
 
+    public static String getUserById(int id) {
+        for (Player player : connectedPlayers) {
+            if (player.getId() == id) {
+                return player.getName(); // Return the player if ID matches
+            }
+        }
+        return null; // Player not found
+    }
+
     public static Player findConnectedPlayer(SocketChannel sc){
 
-        for(int i = 0; i < connectedPlayers.size() ; i++){
-            String username = Player.getNameById(i+1);
+        for(int i = 1; i <= connectedPlayers.size() ; i++){
+            String username = getUserById(i);
+            //System.out.println(username);
             if(sessionConnectedClients.get(username) == sc){
-                return clientPlayer = connectedPlayers.get(i-1);
+                return clientPlayer = connectedPlayers.get(i);
             }
         }
         return null;
     }
 
     public static void runGame(SocketChannel sc) {
+        
+        Server.gameHandler();
         Scanner scanner = new Scanner(System.in);
         Player player = findConnectedPlayer(sc);
-        System.out.println("Hello" + player.getName());
         
         while(true){
             System.out.print("Press 1 to start a game and 0 to return: ");

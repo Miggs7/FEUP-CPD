@@ -17,7 +17,7 @@ public class Server {
     public static String sessionWord = "";
     public static List<Character> sessionGuessedLetters = new ArrayList<>();
     public static Map<String,SocketChannel> sessionConnectedClients;
-    public static List<Player> players;
+    public static List<Player> players = new ArrayList<>();
     public static int sessionRemainingAttempts = 0;
     public static boolean gameSessionOver = false;
     
@@ -80,7 +80,7 @@ public class Server {
         }
 
         connectedClients.put(username, clientChannel);
-        Player connected = new Player(username, connectedClients.size() + 1); 
+        Player connected = new Player(username, connectedClients.size()); 
         GameSession.savePlayers(connectedClients,connected);
 
         return "Authentication successful.";
