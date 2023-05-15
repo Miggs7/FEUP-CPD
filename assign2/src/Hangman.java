@@ -7,17 +7,19 @@ public class Hangman {
     private static final String[] WORDS = {"hangman", "java", "programming", "openai", "computer", "algorithm", "optimization"};
     public static Player clientPlayer;
     public static List<Player> connectedPlayers = Server.players;
+    public static Map<String,SocketChannel> sessionConnectedClients = Server.sessionConnectedClients;
 
-    public static void findConnectedPlayer(Map<String,SocketChannel> p){
+    public static void findConnectedPlayer(SocketChannel sc){
+
         for(int i = 1; i <= connectedPlayers.size() ; i++){
             String username = Player.getNameById(i);
-            if(p.get(username) != null){
+            if(sessionConnectedClients.get(username) == sc){
                 clientPlayer = connectedPlayers.get(i-1);
             }
         }
     }
 
-    public static void runGame(Map<String,SocketChannel> p) {
+    public static void runGame(SocketChannel sc) {
         Scanner scanner = new Scanner(System.in);
         Player player = new Player("UsernameDefault", 1);
         

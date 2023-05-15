@@ -77,6 +77,7 @@ public class Client {
 
                 if (response.equals("Authentication successful.")) {
                     authenticated = true;
+                    Hangman.runGame(socketChannel);
                 }
             } else {
                 System.out.println("Invalid command.");
