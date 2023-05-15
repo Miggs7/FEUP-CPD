@@ -21,6 +21,8 @@ import java.io.*;
     }
 
     public void start() throws IOException {
+        Boolean waiting = false;
+
         System.out.println("Connected to server.");
         Scanner scanner = new Scanner(System.in);
         while (!socketChannel.finishConnect()) {
@@ -156,22 +158,58 @@ import java.io.*;
                         continue;
                     }
                     response = new String(responseBuffer.array(), 0, bytesRead);
+                    System.out.println("Received response: " + response);
                     responseBuffer.clear();
                 }
                 keyIterator.remove();
                 
                 // response parsing
+                if (response.equals("Waiting for opponent...")) {
+                    waiting = true;
+                    break;
+                } else {
+                    System.out.println("Invalid response from server.");
+                    continue;
+                }
+            }
+        }
 
+        // wait for opponent
+        // waiting for opponent
+        while (waiting) {
+            System.out.println("Waiting for opponent...");
+            
+            // Read the response from the server
+            int channels = selector.select();
+            if (channels == 0) {
+                continue;
             }
 
-            
+            Set<SelectionKey> selectedKeys = selector.selectedKeys();
+            Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
 
+            while (keyIterator.hasNext()) {
+                SelectionKey key = keyIterator.next();
+                String response = null;
 
-            
-            
-
-            
+                if (key.isReadable()) {
+                    SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+                    ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
+                    int bytesRead = serverSocketChannel.read(responseBuffer);
+                    if (bytesRead == -1) {
+                        serverSocketChannel.close();
+                        key.cancel();
+                        continue;
+                    }
+                    response = new String(responseBuffer.array(), 0, bytesRead);
+                    System.out.println("Received response: " + response);
+                    responseBuffer.clear();
+                }
+                keyIterator.remove();
+                // response parsing
+            }
         }
+
 
 
         /*
@@ -193,7 +231,6 @@ import java.io.*;
 
         scanner.close();
     }
-
 
     public static void main(String[] args) {
         try{

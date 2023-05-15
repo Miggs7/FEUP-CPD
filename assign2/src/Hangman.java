@@ -4,18 +4,46 @@ import java.util.*;
 import java.util.List;
 
 public class Hangman {
-    private static final String[] WORDS = {"hangman", "java", "programming", "openai", "computer", "algorithm", "optimization"};
-    public static Player clientPlayer;
-    public static List<Player> connectedPlayers = Server.players;
-    public static Map<String,SocketChannel> sessionConnectedClients = Server.sessionConnectedClients;
 
+    // word list
+    private final String[] WORDS = {"hangman", "java", "programming", "computer", "algorithm", "optimization", "bananas", "total", "integer", "souto", "pedro"};
+    private final int num_of_rounds = 3;
 
-    private String word = "";
+    // game properties
+    private String word;
     private Map<Player, Integer> playerAttempts;
+    private Map<Player, Integer> playerScore;
     private Map<Player, List<Character>> guessedLetters;
-    private boolean isGameOver = false;
+    private boolean isGameOver;
+    private int round;
 
     
+    public Hangman() {
+        this.word = "";
+        this.playerAttempts = new HashMap<>();
+        this.playerScore = new HashMap<>();
+        this.guessedLetters = new HashMap<>();
+        this.isGameOver = false;
+        this.round = 0;
+    }
+
+    public void setup(List<Player> connectedPlayers) {
+        this.word = getRandomWord();
+        this.playerAttempts = new HashMap<>();
+        this.playerScore = new HashMap<>();
+        this.guessedLetters = new HashMap<>();
+        this.isGameOver = false;
+        this.round = 0;
+
+        for (Player player : connectedPlayers) {
+            playerAttempts.put(player, 5);
+            playerScore.put(player, 0);
+            guessedLetters.put(player, new ArrayList<>());
+        }
+    }
+
+
+    /* 
     public static String getUserById(int id) {
         for (Player player : connectedPlayers) {
             if (player.getId() == id) {
@@ -36,10 +64,10 @@ public class Hangman {
         }
         return null;
     }
+    */
 
-    public static void runGame(SocketChannel sc) {
-        
-        Server.gameHandler();
+    public void runGame(SocketChannel sc) {
+
         Scanner scanner = new Scanner(System.in);
         Player player = findConnectedPlayer(sc);
         

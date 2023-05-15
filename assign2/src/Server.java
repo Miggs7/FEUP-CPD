@@ -12,10 +12,8 @@ public class Server {
     private Selector selector;
     private List<Player> connectedPlayers;
 
-    private ExecutorService threadPool;
-
-    private Queue<Player> waitingPlayers;
-    private Queue<Player> rankedWaitingPlayers;
+    private List<Player> waitingPlayers;
+    private List<Player> rankedWaitingPlayers;
 
     private List<GameSession> gameSessions;
     private List<GameSession> rankedGameSessions;
@@ -43,8 +41,11 @@ public class Server {
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-        threadPool = Executors.newFixedThreadPool(10);
         connectedPlayers = new ArrayList<>();
+        waitingPlayers = new ArrayList<>();
+        rankedWaitingPlayers = new ArrayList<>();
+        gameSessions = new ArrayList<>();
+        rankedGameSessions = new ArrayList<>();
     }
 
     public String register(String username, String password) {
@@ -134,6 +135,14 @@ public class Server {
                 break;
             }
         }
+        /* 
+        for (Player p : waitingPlayers) {
+            System.out.println(p.getName());
+        }
+        for (Player p : rankedWaitingPlayers) {
+            System.out.println(p.getName());
+        }
+        */
         return response;
     }
 
@@ -214,6 +223,13 @@ public class Server {
 
         // authenticate or register
         while (true) {
+            if (gameSessions.size() > 0) {
+                System.out.println("Not empty");
+                System.out.println("GameSession[0]=" + gameSessions.get(0));
+            } else {
+                System.out.println("Empty game sessions");
+            }
+
             selector.select();
 
             Set<SelectionKey> selectedKeys = selector.selectedKeys();
@@ -232,11 +248,13 @@ public class Server {
                     clientChannel.configureBlocking(false);
                     clientChannel.register(selector, SelectionKey.OP_READ);
                 } else if (key.isReadable()) {
-
                     // threadPool should be used here
                     SocketChannel clientChannel = (SocketChannel) key.channel();
                     System.out.println("New message from client: " + clientChannel.getRemoteAddress());
                     String response = handleRequest(clientChannel);
+                    /*for (Player player : connectedPlayers) {
+                        response += " " + player.getName();
+                    }*/
                     System.out.println("Sending message to client: " + response);
                     ByteBuffer buffer = ByteBuffer.wrap(response.getBytes());
 
@@ -245,14 +263,15 @@ public class Server {
                         continue;
                     }
                     clientChannel.write(buffer);
+                    buildMatches();
                 }
                 iter.remove();
+                //buildMatches();
             }
         }
     }
 
     public void stop() throws IOException {
-        threadPool.shutdown();
         serverSocketChannel.close();
 
         for (Player player : connectedPlayers) {
@@ -315,4 +334,48 @@ public class Server {
 
           //runGame();
     }*/
+
+
+    private void buildMatches(){
+        System.out.println("Building matches");
+        if (waitingPlayers.size() >= 2) {
+            System.out.println("Waiting simple players: " + waitingPlayers.size());
+            // get the first two players from the waiting queue
+            Player player1 = waitingPlayers.get(0);
+            Player player2 = waitingPlayers.get(1);
+
+            // remove the players from the waiting queue
+            waitingPlayers.remove(player1);
+            waitingPlayers.remove(player2);
+
+            // make a list of the two players
+            List<Player> players = new ArrayList<Player>();
+            players.add(player1);
+            players.add(player2);
+
+            // create a new game session
+            GameSession gameSession = new GameSession(players, 2);
+            gameSessions.add(gameSession);
+        }
+
+        if (rankedWaitingPlayers.size() >= 2) {
+            System.out.println("Waiting ranked players: " + rankedWaitingPlayers.size());
+            // get the first two players from the waiting queue
+            Player player1 = rankedWaitingPlayers.get(0);
+            Player player2 = rankedWaitingPlayers.get(1);
+
+            // remove the players from the waiting queue
+            rankedWaitingPlayers.remove(player1);
+            rankedWaitingPlayers.remove(player2);
+
+            // make a list of the two players
+            List<Player> players = new ArrayList<Player>();
+            players.add(player1);
+            players.add(player2);
+
+            // create a new game session
+            GameSession gameSession = new GameSession(players, 2);
+            gameSessions.add(gameSession);
+        }
+    }
 }

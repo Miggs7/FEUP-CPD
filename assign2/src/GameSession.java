@@ -10,16 +10,44 @@ public class GameSession {
     // session properties
     private List<Player> connectedPlayers;
     private int capacity;
+    private ExecutorService threadPool;
 
     // game properties
-    private Hangman game;
+    //private Hangman game;
 
     public GameSession(List<Player> connectedPlayers, int capacity){
         this.connectedPlayers = connectedPlayers;
         this.capacity = capacity;
-        game.setup();
+        this.threadPool = Executors.newFixedThreadPool(capacity);
+        //game.setup(connectedPlayers);
+
+        // start game
+        startGame();
+
+        // end game
+        endGame();
     }
-    
+
+    public void addPlayer(Player player){
+        connectedPlayers.add(player);
+    }
+
+    public int getCapacity(){
+        return capacity;
+    }
+
+    public void startGame(){
+        // start game
+        for (Player player : connectedPlayers) {
+            //threadPool.execute(new GameHandler(player));
+        }
+    }
+
+    public void endGame(){
+        // end game
+        threadPool.shutdown();
+    }
+
 
     /* word 
     public static void saveWord(String newWord){
@@ -62,8 +90,8 @@ public class GameSession {
         return remainingAttempts;
     }
 */
-    /*isGameOver*/
+    /*isGameOver
     public boolean isGameOver(){
         return isGameOver;
-    }
+    }*/
 }

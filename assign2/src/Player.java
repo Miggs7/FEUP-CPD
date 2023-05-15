@@ -60,14 +60,14 @@ public class Player{
     private List<Integer> obtainStats(String username) {
         List<Integer> stats = new ArrayList<>();
         try {
-            File file = new File("stats.txt");
+            File file = new File("server.txt");
             Scanner scanner = new Scanner(file);
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 String[] info = line.split(" ");
                 if (info[0].equals(username)) {
-                    stats.add(Integer.parseInt(info[1]));
-                    stats.add(Integer.parseInt(info[2]));
+                    stats.add(Integer.parseInt(info[3]));
+                    stats.add(Integer.parseInt(info[4]));
                     break;
                 }
             }
