@@ -1,9 +1,10 @@
 import java.util.Scanner;
-
+import java.util.*;
 import java.util.List;
 
 public class Hangman {
     private static final String[] WORDS = {"hangman", "java", "programming", "openai", "computer", "algorithm", "optimization"};
+    public static List<Player> players = new ArrayList<>();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -32,6 +33,7 @@ public class Hangman {
         
                     if (word.contains(String.valueOf(letter))) {
                         updateGuessedLetters(letter, word, guessedLetters);
+                        /*save the guessed letter*/
                         GameSession.saveLetter(letter);
                         if (isWordGuessed(guessedLetters)) {
                             int score = 0;
@@ -59,6 +61,7 @@ public class Hangman {
                             }
                             player.addScore(score);
                             System.out.println("Congratulations! You guessed the word: " + word);
+                            GameSession.isGameOver = false;
                             System.out.println("You gained " + String.valueOf(score) + " points");
                             System.out.println("Your total score is " + String.valueOf(player.getScore()));
                             break;

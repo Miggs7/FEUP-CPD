@@ -24,7 +24,10 @@ public class Server {
 
         threadPool = Executors.newFixedThreadPool(10);
         connectedClients = new HashMap<String, SocketChannel>();
+
     }
+
+
 
     public String register(String username, String password) {
         // when registering, open the server.txt and retrieve the usernames, passwords and tokens
@@ -74,7 +77,11 @@ public class Server {
         }
 
         connectedClients.put(username, clientChannel);
-        GameSession.savePlayers(connectedClients);
+
+        Player connected = new Player(username, connectedClients.size() + 1); 
+        Hangman.players.add(connected);
+
+        GameSession.savePlayers(connectedClients,Hangman.players);
         return "Authentication successful.";
     }
 
@@ -230,4 +237,14 @@ public class Server {
         }
         return users;
     }
+
+    public void gameHandler(){
+         String sessionWord = GameSession.loadWord();
+         List<Character> sessionGuessedLetters = GameSession.loadGuessedLetters();
+         Map<String,SocketChannel> sessionConnectedClients = GameSession.loadClients();
+         List<Player> players = GameSession.loadPlayers();
+         int sessionRemainingAttempts = GameSession.loadRemainingAttempts();
+         boolean gameSessionOver = GameSession.isGameOver();
+        
+    }   
 }

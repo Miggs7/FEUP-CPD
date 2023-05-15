@@ -10,7 +10,9 @@ public class GameSession {
     public static String word;
     public static List<Character> guessedLetters = new ArrayList<>();
     public static Map<String, SocketChannel> connectedClients;
+    public static List<Player> connectedPlayers;
     public static int remainingAttempts = 0;
+    public static boolean isGameOver = false;
 
     /* word */
     public static void saveWord(String newWord){
@@ -31,12 +33,17 @@ public class GameSession {
     }
 
     /*player info*/
-    public static void savePlayers(Map<String, SocketChannel> newConnectedClients){
+    public static void savePlayers(Map<String, SocketChannel> newConnectedClients,List<Player> players){
+        connectedPlayers = players;
         connectedClients = newConnectedClients;
     }
 
-    public static Map<String,SocketChannel> loadPlayers(){
+    public static Map<String,SocketChannel> loadClients(){
         return connectedClients;
+    }
+
+    public static List<Player> loadPlayers(){
+        return connectedPlayers;
     }
 
     /*remaning attempts */
@@ -46,6 +53,12 @@ public class GameSession {
 
     public static int loadRemainingAttempts(){
         return remainingAttempts;
+    }
+
+    /*isGameOver */
+
+    public static boolean isGameOver(){
+        return isGameOver;
     }
     
 }
