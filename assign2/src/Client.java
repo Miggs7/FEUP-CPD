@@ -10,6 +10,7 @@ import java.io.*;
     private SocketChannel socketChannel;
     private Selector selector;
     private boolean authenticated = false;
+    private String username;
 
     public Client(String host, int port) throws IOException {
         socketChannel = SocketChannel.open();
@@ -21,14 +22,14 @@ import java.io.*;
 
     public void start() throws IOException {
         System.out.println("Connected to server.");
-
+        Scanner scanner = new Scanner(System.in);
         while (!socketChannel.finishConnect()) {
             // wait for connection to be established
         }
 
         while (!authenticated) {
             // authentication
-            Scanner scanner = new Scanner(System.in);
+            
             String username = null;
             String password = null;
             String token = null;
@@ -109,11 +110,71 @@ import java.io.*;
                 if (response.equals("Authentication successful.")) {
                     System.out.println("Authentication successful.");
                     authenticated = true;
+                    this.username = username;
                     break;
                 }
             }
+
         }
 
+        // lobby
+
+        while (authenticated) {
+            System.out.println("Match Type:");
+            System.out.println("1. Simple");
+            System.out.println("2. Ranked");
+            System.out.println("Please enter the number of the match type you would like to play: ");
+
+            String matchType = scanner.nextLine();
+            String token = obtainToken(username);
+
+            String message = "match:" + username + ":" + matchType + ":" + token;
+            System.out.println("Sending message to server: " + message);
+            ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+            socketChannel.write(buffer);
+
+            // Read the response from the server
+            int channels = selector.select();
+            if (channels == 0) {
+                continue;
+            }
+
+            Set<SelectionKey> selectedKeys = selector.selectedKeys();
+            Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
+
+            while (keyIterator.hasNext()) {
+                SelectionKey key = keyIterator.next();
+                String response = null;
+
+                if (key.isReadable()) {
+                    SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+                    ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
+                    int bytesRead = serverSocketChannel.read(responseBuffer);
+                    if (bytesRead == -1) {
+                        serverSocketChannel.close();
+                        key.cancel();
+                        continue;
+                    }
+                    response = new String(responseBuffer.array(), 0, bytesRead);
+                    responseBuffer.clear();
+                }
+                keyIterator.remove();
+                
+                // response parsing
+
+            }
+
+            
+
+
+            
+            
+
+            
+        }
+
+
+        /*
         // game
 
         while (true) {
@@ -125,10 +186,12 @@ import java.io.*;
                 e.printStackTrace();
             }
         }
-
+        */
         // disconnect
         // socketChannel.close();
         // System.out.println("Disconnected from server.");
+
+        scanner.close();
     }
 
 

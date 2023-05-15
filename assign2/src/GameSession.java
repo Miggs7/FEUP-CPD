@@ -7,32 +7,39 @@ import java.util.concurrent.*;
 import java.security.*;
 
 public class GameSession {
-    public static String word;
-    public static List<Character> guessedLetters = new ArrayList<>();
-    public static Map<String, SocketChannel> connectedClients;
-    public static List<Player> connectedPlayers = new ArrayList<>();
-    public static int remainingAttempts = 0;
-    public static boolean isGameOver = false;
+    // session properties
+    private List<Player> connectedPlayers;
+    private int capacity;
 
-    /* word */
+    // game properties
+    private Hangman game;
+
+    public GameSession(List<Player> connectedPlayers, int capacity){
+        this.connectedPlayers = connectedPlayers;
+        this.capacity = capacity;
+        game.setup();
+    }
+    
+
+    /* word 
     public static void saveWord(String newWord){
         word = newWord; 
     }
 
     public static String loadWord(){
         return word;
-    }
+    }*/
 
-    /*save Letter*/
+    /*save Letter
     public static void saveLetter(Character letter){
         guessedLetters.add(letter);
     }
 
     public static List<Character> loadGuessedLetters(){
         return guessedLetters;
-    }
+    }*/
 
-    /*player info*/
+    /*player info
     public static void savePlayers(Map<String, SocketChannel> newConnectedClients,Player player){
         connectedPlayers.add(player);
         connectedClients = newConnectedClients;
@@ -45,20 +52,18 @@ public class GameSession {
     public static List<Player> loadPlayers(){
         return connectedPlayers;
     }
-
-    /*remaning attempts */
+*/
+    /*remaning attempts 
     public static void saveRemainingAttempts(int tries){
         remainingAttempts = tries;
     }
 
-    public static int loadRemainingAttempts(){
+    public int loadRemainingAttempts(){
         return remainingAttempts;
     }
-
-    /*isGameOver */
-
-    public static boolean isGameOver(){
+*/
+    /*isGameOver*/
+    public boolean isGameOver(){
         return isGameOver;
     }
-    
 }

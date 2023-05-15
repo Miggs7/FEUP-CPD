@@ -10,17 +10,32 @@ public class Server {
    
     private ServerSocketChannel serverSocketChannel;
     private Selector selector;
-    private Map<String, SocketChannel> connectedClients;
+    private List<Player> connectedPlayers;
 
     private ExecutorService threadPool;
 
+    private Queue<Player> waitingPlayers;
+    private Queue<Player> rankedWaitingPlayers;
+
+    private List<GameSession> gameSessions;
+    private List<GameSession> rankedGameSessions;
+
+
+
+
+
+
+
+
+/* 
     public static String sessionWord = "";
     public static List<Character> sessionGuessedLetters = new ArrayList<>();
     public static Map<String,SocketChannel> sessionConnectedClients;
     public static List<Player> players = new ArrayList<>();
     public static int sessionRemainingAttempts = 0;
     public static boolean gameSessionOver = false;
-    
+    */
+
     public Server(int port) throws IOException {
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.bind(new InetSocketAddress(port));
@@ -29,7 +44,7 @@ public class Server {
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
         threadPool = Executors.newFixedThreadPool(10);
-        connectedClients = new HashMap<String, SocketChannel>();
+        connectedPlayers = new ArrayList<>();
     }
 
     public String register(String username, String password) {
@@ -49,7 +64,7 @@ public class Server {
             File file = new File("server.txt");
             FileWriter fw = new FileWriter(file, true);
             BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(username + " " + password + " " + token);
+            bw.write(username + " " + password + " " + token + "1" + "0");
             bw.newLine();
             bw.close();
         } catch (IOException e) {
@@ -75,15 +90,51 @@ public class Server {
             return "Incorrect token.";
         }
 
-        if (connectedClients.containsKey(username)) {
-            return "User already logged in.";
+        for (Player player : connectedPlayers) {
+            if (player.getName().equals(username)) {
+                return "User already logged in.";
+            }
+        }
+        Player connected = new Player(username, clientChannel);
+        connectedPlayers.add(connected);
+        return "Authentication successful.";
+    }
+
+    private String match(String username, String matchType, String token, SocketChannel clientChannel) {
+        String response = "";
+
+        Map<String, List<String>> users = obtainInfo();
+
+        if (!users.containsKey(username)) {
+            return "Username does not exist.";
         }
 
-        connectedClients.put(username, clientChannel);
-        Player connected = new Player(username, connectedClients.size()); 
-        GameSession.savePlayers(connectedClients,connected);
-
-        return "Authentication successful.";
+        List<String> info = users.get(username);
+        if (!info.get(1).equals(token)) {
+            return "Incorrect token.";
+        }
+        Player player = null;
+        for (Player p : connectedPlayers) {
+            if (p.getSocketChannel().equals(clientChannel)) {
+                player = p;
+                break;
+            }
+        }
+        switch (matchType) {
+            case ("ranked"): {
+                // obtain the corresponding player object by socket channel
+                rankedWaitingPlayers.add(player);
+                response = "Added to ranked waiting queue.";
+                break;
+            }
+            case ("simple"): {
+                // add the player to the unranked waiting queue
+                waitingPlayers.add(player);
+                response = "Added to simple waiting queue.";
+                break;
+            }
+        }
+        return response;
     }
 
     private String handleRequest(SocketChannel socketChannel) {
@@ -103,27 +154,35 @@ public class Server {
             String[] fields = new String(buffer.array(), 0, buffer.limit()).split(":");
             String command = fields[0];
 
-            // Handle authentication
-            if (command.equals("authenticate")) {
-                String username = fields[1];
-                String password = fields[2];
-                String token = fields[3];
-                
-                response = authenticate(username, password, token, socketChannel);
-            }
-
-            // Handle registration
-            else if (command.equals("register")) {
-                String username = fields[1];
-                String password = fields[2];
-
-                response = register(username, password);
-                System.out.println("Register response:" + response);
-            }
-
-            // Handle other requests
-            else {
-                response = "Invalid command.";
+            switch (command){
+                // Handle authentication
+                case ("authenticate"): {
+                    String username = fields[1];
+                    String password = fields[2];
+                    String token = fields[3];
+                    response = authenticate(username, password, token, socketChannel);
+                    break;
+                }
+                // Handle registration
+                case ("register"): {
+                    String username = fields[1];
+                    String password = fields[2];
+                    response = register(username, password);
+                    break;
+                }
+                // Handle match request
+                case ("match"): {
+                    String username = fields[1];
+                    String matchType = fields[2];
+                    String token = fields[3];
+                    response = match(username, matchType, token, socketChannel);
+                    break;
+                }
+                // default
+                default: {
+                    response = "Invalid command.";
+                    break;
+                }
             }
             
         } catch (IOException e) {
@@ -137,9 +196,9 @@ public class Server {
                 System.out.println("Error closing socket channel.");
             }
             // remove the client from the connected clients
-            for (Map.Entry<String, SocketChannel> entry : connectedClients.entrySet()) {
-                if (entry.getValue().equals(socketChannel)) {
-                    connectedClients.remove(entry.getKey());
+            for (Player player : connectedPlayers) {
+                if (player.getSocketChannel().equals(socketChannel)) {
+                    connectedPlayers.remove(player);
                     break;
                 }
             }
@@ -147,6 +206,8 @@ public class Server {
 
         return response;
     }
+
+    
 
     public void start() throws IOException {
         System.out.println("Server started.");
@@ -171,8 +232,9 @@ public class Server {
                     clientChannel.configureBlocking(false);
                     clientChannel.register(selector, SelectionKey.OP_READ);
                 } else if (key.isReadable()) {
+
+                    // threadPool should be used here
                     SocketChannel clientChannel = (SocketChannel) key.channel();
-                    
                     System.out.println("New message from client: " + clientChannel.getRemoteAddress());
                     String response = handleRequest(clientChannel);
                     System.out.println("Sending message to client: " + response);
@@ -193,8 +255,8 @@ public class Server {
         threadPool.shutdown();
         serverSocketChannel.close();
 
-        for (SocketChannel clientChannel : connectedClients.values()) {
-            clientChannel.close();
+        for (Player player : connectedPlayers) {
+            player.getSocketChannel().close();
         }
     }
 
@@ -224,11 +286,15 @@ public class Server {
                 String username_save = fields[0];
                 String password_save = fields[1];
                 String token_save = fields[2];
+                String level = fields[3];
+                String exp = fields[4];
 
                 //user info is a list that contains password and token
                 List<String> userInfo = new ArrayList<String>();
                 userInfo.add(password_save);
                 userInfo.add(token_save);
+                userInfo.add(level);
+                userInfo.add(exp);
 
                 users.put(username_save, userInfo);
             }
@@ -238,7 +304,7 @@ public class Server {
         }
         return users;
     }
-
+    /* 
     public static void gameHandler(){
           sessionWord = GameSession.loadWord();
           sessionGuessedLetters = GameSession.loadGuessedLetters();
@@ -248,5 +314,5 @@ public class Server {
           gameSessionOver = GameSession.isGameOver();
 
           //runGame();
-    }   
+    }*/
 }

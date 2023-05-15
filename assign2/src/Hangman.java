@@ -9,6 +9,13 @@ public class Hangman {
     public static List<Player> connectedPlayers = Server.players;
     public static Map<String,SocketChannel> sessionConnectedClients = Server.sessionConnectedClients;
 
+
+    private String word = "";
+    private Map<Player, Integer> playerAttempts;
+    private Map<Player, List<Character>> guessedLetters;
+    private boolean isGameOver = false;
+
+    
     public static String getUserById(int id) {
         for (Player player : connectedPlayers) {
             if (player.getId() == id) {
