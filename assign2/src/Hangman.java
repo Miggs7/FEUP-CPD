@@ -23,7 +23,7 @@ public class Hangman {
                 
                 while (true) {
                     System.out.println("Guess a letter: ");
-                    char letter = scanner.next().charAt(0);
+                    Character letter = scanner.next().charAt(0);
         
                     if (isLetterGuessed(letter, guessedLetters)) {
                         System.out.println("You have already guessed that letter!");

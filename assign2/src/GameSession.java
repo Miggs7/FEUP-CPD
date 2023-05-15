@@ -1,6 +1,3 @@
-import java.util.Scanner;
-
-import java.util.Map;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -11,13 +8,13 @@ import java.security.*;
 
 public class GameSession {
     public static String word;
-    public static List<Character> guessedLetters;
+    public static List<Character> guessedLetters = new ArrayList<>();
     public static Map<String, SocketChannel> connectedClients;
     public static int remainingAttempts = 0;
 
     /* word */
     public static void saveWord(String newWord){
-        newWord = word; 
+        word = newWord; 
     }
 
     public static String loadWord(){
@@ -25,7 +22,7 @@ public class GameSession {
     }
 
     /*save Letter*/
-    public static void saveLetter(char letter){
+    public static void saveLetter(Character letter){
         guessedLetters.add(letter);
     }
 
