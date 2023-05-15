@@ -10,7 +10,7 @@ public class GameSession {
     public static String word;
     public static List<Character> guessedLetters = new ArrayList<>();
     public static Map<String, SocketChannel> connectedClients;
-    public static List<Player> connectedPlayers;
+    public static List<Player> connectedPlayers = new ArrayList<>();
     public static int remainingAttempts = 0;
     public static boolean isGameOver = false;
 
@@ -33,8 +33,8 @@ public class GameSession {
     }
 
     /*player info*/
-    public static void savePlayers(Map<String, SocketChannel> newConnectedClients,List<Player> players){
-        connectedPlayers = players;
+    public static void savePlayers(Map<String, SocketChannel> newConnectedClients,Player player){
+        connectedPlayers.add(player);
         connectedClients = newConnectedClients;
     }
 

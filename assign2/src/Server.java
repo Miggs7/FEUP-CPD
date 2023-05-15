@@ -6,7 +6,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.security.*;
 
-
 public class Server {
    
     private ServerSocketChannel serverSocketChannel;
@@ -31,7 +30,6 @@ public class Server {
 
         threadPool = Executors.newFixedThreadPool(10);
         connectedClients = new HashMap<String, SocketChannel>();
-
     }
 
     public String register(String username, String password) {
@@ -82,12 +80,8 @@ public class Server {
         }
 
         connectedClients.put(username, clientChannel);
-
         Player connected = new Player(username, connectedClients.size() + 1); 
-        GameSession.connectedPlayers.add(connected);
-
-        GameSession.savePlayers(connectedClients,GameSession.connectedPlayers);
-        //Hangman.runGame(connectedClients);
+        GameSession.savePlayers(connectedClients,connected);
 
         return "Authentication successful.";
     }

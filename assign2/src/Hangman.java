@@ -9,19 +9,21 @@ public class Hangman {
     public static List<Player> connectedPlayers = Server.players;
     public static Map<String,SocketChannel> sessionConnectedClients = Server.sessionConnectedClients;
 
-    public static void findConnectedPlayer(SocketChannel sc){
+    public static Player findConnectedPlayer(SocketChannel sc){
 
-        for(int i = 1; i <= connectedPlayers.size() ; i++){
-            String username = Player.getNameById(i);
+        for(int i = 0; i < connectedPlayers.size() ; i++){
+            String username = Player.getNameById(i+1);
             if(sessionConnectedClients.get(username) == sc){
-                clientPlayer = connectedPlayers.get(i-1);
+                return clientPlayer = connectedPlayers.get(i-1);
             }
         }
+        return null;
     }
 
     public static void runGame(SocketChannel sc) {
         Scanner scanner = new Scanner(System.in);
-        Player player = new Player("UsernameDefault", 1);
+        Player player = findConnectedPlayer(sc);
+        System.out.println("Hello" + player.getName());
         
         while(true){
             System.out.print("Press 1 to start a game and 0 to return: ");
