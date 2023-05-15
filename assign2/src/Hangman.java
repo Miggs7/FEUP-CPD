@@ -15,6 +15,8 @@ public class Hangman {
             
             if(input == 1){
                 String word = getRandomWord();
+                GameSession.word = word;
+
                 char[] guessedLetters = new char[word.length()];
                 int numAttempts = 0;
                 int maxAttempts = 6;
@@ -30,6 +32,7 @@ public class Hangman {
         
                     if (word.contains(String.valueOf(letter))) {
                         updateGuessedLetters(letter, word, guessedLetters);
+                        GameSession.saveLetter(letter);
                         if (isWordGuessed(guessedLetters)) {
                             int score = 0;
                             switch(numAttempts){
@@ -63,6 +66,7 @@ public class Hangman {
                     } else {
                         numAttempts++;
                         System.out.println("Incorrect guess. Attempts remaining: " + (maxAttempts - numAttempts));
+                        GameSession.saveRemainingAttempts(maxAttempts - numAttempts);
                         if (numAttempts == maxAttempts) {
                             System.out.println("Sorry, you lost! The word was: " + word);
                             break;

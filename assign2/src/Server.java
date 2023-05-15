@@ -74,6 +74,7 @@ public class Server {
         }
 
         connectedClients.put(username, clientChannel);
+        GameSession.savePlayers(connectedClients);
         return "Authentication successful.";
     }
 
