@@ -14,6 +14,13 @@ public class Server {
     private Map<String, SocketChannel> connectedClients;
 
     private ExecutorService threadPool;
+
+    public static String sessionWord = "";
+    public static List<Character> sessionGuessedLetters = new ArrayList<>();
+    public static Map<String,SocketChannel> sessionConnectedClients;
+    public static List<Player> players;
+    public static int sessionRemainingAttempts = 0;
+    public static boolean gameSessionOver = false;
     
     public Server(int port) throws IOException {
         serverSocketChannel = ServerSocketChannel.open();
@@ -79,9 +86,9 @@ public class Server {
         connectedClients.put(username, clientChannel);
 
         Player connected = new Player(username, connectedClients.size() + 1); 
-        Hangman.players.add(connected);
+        GameSession.connectedPlayers.add(connected);
 
-        GameSession.savePlayers(connectedClients,Hangman.players);
+        GameSession.savePlayers(connectedClients,GameSession.connectedPlayers);
         return "Authentication successful.";
     }
 
@@ -238,13 +245,14 @@ public class Server {
         return users;
     }
 
-    public void gameHandler(){
-         String sessionWord = GameSession.loadWord();
-         List<Character> sessionGuessedLetters = GameSession.loadGuessedLetters();
-         Map<String,SocketChannel> sessionConnectedClients = GameSession.loadClients();
-         List<Player> players = GameSession.loadPlayers();
-         int sessionRemainingAttempts = GameSession.loadRemainingAttempts();
-         boolean gameSessionOver = GameSession.isGameOver();
-        
+    public static void gameHandler(){
+          sessionWord = GameSession.loadWord();
+          sessionGuessedLetters = GameSession.loadGuessedLetters();
+          sessionConnectedClients = GameSession.loadClients();
+          players = GameSession.loadPlayers();
+          sessionRemainingAttempts = GameSession.loadRemainingAttempts();
+          gameSessionOver = GameSession.isGameOver();
+
+          //runGame();
     }   
 }

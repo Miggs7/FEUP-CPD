@@ -1,10 +1,21 @@
 import java.util.Scanner;
+import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.List;
 
 public class Hangman {
     private static final String[] WORDS = {"hangman", "java", "programming", "openai", "computer", "algorithm", "optimization"};
-    public static List<Player> players = new ArrayList<>();
+    public static Player clientPlayer;
+    public static List<Player> connectedPlayers = Server.players;
+
+    public static void findConnectedPlayer(Map<String,SocketChannel> p){
+        for(int i = 1; i <= connectedPlayers.size() ; i++){
+            String username = Player.getNameById(i);
+            if(p.get(username) != null){
+                clientPlayer = connectedPlayers.get(i-1);
+            }
+        }
+    }
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
