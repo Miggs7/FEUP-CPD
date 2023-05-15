@@ -17,7 +17,7 @@ public class Hangman {
         }
     }
 
-    public static void main(String[] args) {
+    public static void runGame(Map<String,SocketChannel> p) {
         Scanner scanner = new Scanner(System.in);
         Player player = new Player("UsernameDefault", 1);
         

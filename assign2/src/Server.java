@@ -34,8 +34,6 @@ public class Server {
 
     }
 
-
-
     public String register(String username, String password) {
         // when registering, open the server.txt and retrieve the usernames, passwords and tokens
         Map<String, List<String>> users = obtainInfo();
@@ -89,6 +87,8 @@ public class Server {
         GameSession.connectedPlayers.add(connected);
 
         GameSession.savePlayers(connectedClients,GameSession.connectedPlayers);
+        //Hangman.runGame(connectedClients);
+
         return "Authentication successful.";
     }
 
