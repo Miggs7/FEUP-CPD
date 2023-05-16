@@ -111,6 +111,11 @@ public class Server {
         }
 
         List<String> info = users.get(username);
+
+        for (String inf : info) {
+            System.out.println(inf);
+        }
+
         if (!info.get(1).equals(token)) {
             return "Incorrect token.";
         }
@@ -122,16 +127,20 @@ public class Server {
             }
         }
         switch (matchType) {
-            case ("ranked"): {
+            case ("1"): {
+                // add the player to the unranked waiting queue
+                waitingPlayers.add(player);
+                response = "Added to simple waiting queue.";
+                break;
+            }
+            case ("2"): {
                 // obtain the corresponding player object by socket channel
                 rankedWaitingPlayers.add(player);
                 response = "Added to ranked waiting queue.";
                 break;
             }
-            case ("simple"): {
-                // add the player to the unranked waiting queue
-                waitingPlayers.add(player);
-                response = "Added to simple waiting queue.";
+            default: {
+                response = "Invalid match type.";
                 break;
             }
         }
@@ -216,19 +225,23 @@ public class Server {
         return response;
     }
 
-    
+    private void runGameSessions() {
+        Iterator<GameSession> sessionIterator = gameSessions.iterator();
+        while (sessionIterator.hasNext()) {
+            GameSession gameSession = sessionIterator.next();
+            if (!gameSession.isGameOver()) {
+                gameSession.runGame();
+            } else {
+                sessionIterator.remove();
+            }
+        }
+    }
 
     public void start() throws IOException {
         System.out.println("Server started.");
 
         // authenticate or register
         while (true) {
-            if (gameSessions.size() > 0) {
-                System.out.println("Not empty");
-                System.out.println("GameSession[0]=" + gameSessions.get(0));
-            } else {
-                System.out.println("Empty game sessions");
-            }
 
             selector.select();
 
@@ -263,11 +276,12 @@ public class Server {
                         continue;
                     }
                     clientChannel.write(buffer);
-                    buildMatches();
                 }
                 iter.remove();
-                //buildMatches();
             }
+
+            buildMatches();
+            //runGameSessions();
         }
     }
 
@@ -337,7 +351,6 @@ public class Server {
 
 
     private void buildMatches(){
-        System.out.println("Building matches");
         if (waitingPlayers.size() >= 2) {
             System.out.println("Waiting simple players: " + waitingPlayers.size());
             // get the first two players from the waiting queue

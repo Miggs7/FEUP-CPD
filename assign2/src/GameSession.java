@@ -13,19 +13,13 @@ public class GameSession {
     private ExecutorService threadPool;
 
     // game properties
-    //private Hangman game;
+    private Hangman game;
 
     public GameSession(List<Player> connectedPlayers, int capacity){
         this.connectedPlayers = connectedPlayers;
         this.capacity = capacity;
         this.threadPool = Executors.newFixedThreadPool(capacity);
-        //game.setup(connectedPlayers);
-
-        // start game
-        startGame();
-
-        // end game
-        endGame();
+        game.setup(connectedPlayers);
     }
 
     public void addPlayer(Player player){
@@ -39,7 +33,8 @@ public class GameSession {
     public void startGame(){
         // start game
         for (Player player : connectedPlayers) {
-            //threadPool.execute(new GameHandler(player));
+            // game loop for each player
+            threadPool.execute(new GameHandler(player));
         }
     }
 
