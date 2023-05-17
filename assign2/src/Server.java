@@ -3,7 +3,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
-import java.util.concurrent.*;
+
 import java.security.*;
 
 public class Server {
@@ -17,13 +17,6 @@ public class Server {
 
     private List<GameSession> gameSessions;
     private List<GameSession> rankedGameSessions;
-
-
-
-
-
-
-
 
 /* 
     public static String sessionWord = "";
@@ -130,13 +123,13 @@ public class Server {
             case ("1"): {
                 // add the player to the unranked waiting queue
                 waitingPlayers.add(player);
-                response = "Added to simple waiting queue.";
+                response = "Added to waiting queue.";
                 break;
             }
             case ("2"): {
                 // obtain the corresponding player object by socket channel
                 rankedWaitingPlayers.add(player);
-                response = "Added to ranked waiting queue.";
+                response = "Added to waiting queue.";
                 break;
             }
             default: {
@@ -227,12 +220,56 @@ public class Server {
 
     private void runGameSessions() {
         Iterator<GameSession> sessionIterator = gameSessions.iterator();
+        Iterator<GameSession> rankedSessionIterator = rankedGameSessions.iterator();
+
         while (sessionIterator.hasNext()) {
             GameSession gameSession = sessionIterator.next();
-            if (!gameSession.isGameOver()) {
-                gameSession.runGame();
-            } else {
-                sessionIterator.remove();
+            
+            switch (gameSession.getStatus()) {
+                case READY:
+                    // start the game
+                    System.out.println("Starting game.");
+                    gameSession.startGame();
+                    break;
+                case IN_PROGRESS:
+                    // check status
+                    System.out.println("Game in progress.");
+                    gameSession.checkStatus();
+                    break;
+                case ENDED:
+                    // remove the game session
+                    System.out.println("Game ended.");
+                    gameSession.shutDown();
+                    sessionIterator.remove();
+                    break;
+                default:
+                    //error
+                    break;
+            }
+        }
+
+        while (rankedSessionIterator.hasNext()) {
+            GameSession gameSession = rankedSessionIterator.next();
+            
+            switch (gameSession.getStatus()) {
+                case READY:
+                    // start the game
+                    System.out.println("Starting game.");
+                    gameSession.startGame();
+                    break;
+                case IN_PROGRESS:
+                    // skip
+                    System.out.println("Game in progress.");
+                    break;
+                case ENDED:
+                    // remove the game session
+                    System.out.println("Game ended.");
+                    gameSession.shutDown();
+                    sessionIterator.remove();
+                    break;
+                default:
+                    //error
+                    break;
             }
         }
     }
@@ -242,6 +279,29 @@ public class Server {
 
         // authenticate or register
         while (true) {
+
+            ThreadGroup rootGroup = Thread.currentThread().getThreadGroup().getParent();
+        
+        // Keep iterating until we find the root thread group
+        while (rootGroup.getParent() != null) {
+            rootGroup = rootGroup.getParent();
+        }
+        
+        // Create an array to hold all active threads
+        Thread[] threads = new Thread[rootGroup.activeCount()];
+        
+        // Fill the array with active threads
+        rootGroup.enumerate(threads);
+        
+        // Iterate over each thread and print its details
+        for (Thread thread : threads) {
+            if (thread != null) {
+                System.out.println("Thread name: " + thread.getName());
+                System.out.println("Thread ID: " + thread.getId());
+                System.out.println("Thread state: " + thread.getState());
+                System.out.println("--------------------------------------");
+            }
+        }
 
             selector.select();
 
@@ -281,7 +341,7 @@ public class Server {
             }
 
             buildMatches();
-            //runGameSessions();
+            runGameSessions();
         }
     }
 
@@ -319,15 +379,13 @@ public class Server {
                 String username_save = fields[0];
                 String password_save = fields[1];
                 String token_save = fields[2];
-                String level = fields[3];
-                String exp = fields[4];
+                String mmr = fields[3];
 
                 //user info is a list that contains password and token
                 List<String> userInfo = new ArrayList<String>();
                 userInfo.add(password_save);
                 userInfo.add(token_save);
-                userInfo.add(level);
-                userInfo.add(exp);
+                userInfo.add(mmr);
 
                 users.put(username_save, userInfo);
             }
@@ -388,7 +446,7 @@ public class Server {
 
             // create a new game session
             GameSession gameSession = new GameSession(players, 2);
-            gameSessions.add(gameSession);
+            rankedGameSessions.add(gameSession);
         }
     }
 }

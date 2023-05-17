@@ -7,17 +7,20 @@ public class Player{
     // player info
     private String username;
     private SocketChannel socketChannel;
+    
+    private int mmr; //Matchmaking rating mmr >= 0 && mmr <= 12
 
-    // player stats
+    /*// player stats
     private int level;
-    private int experience;
+    private int experience;*/
+
 
     public Player(String username, SocketChannel socketChannel) {
         this.username = username;
         this.socketChannel = socketChannel;
 
-        this.level = obtainStats(username).get(0);
-        this.experience = obtainStats(username).get(1);
+        this.mmr = obtainStats(username).get(0);
+        
     }
 
     public void setName(String name){
@@ -34,6 +37,34 @@ public class Player{
 
     public SocketChannel getSocketChannel(){
         return this.socketChannel;
+    }
+
+    public void setMmr(){
+        this.mmr = 2;
+    }
+
+    public int getMmr(){
+        return this.mmr;
+    }
+
+    public void addToMmr(){
+        int maxMmr = 10;
+        if((this.mmr + 4) > maxMmr){
+            mmr = maxMmr;
+        }
+        else{
+            this.mmr += 4;
+        }
+    }
+
+    public void subtractToMmr(){
+        int minMmr = 0;
+        if((this.mmr - 1) < minMmr){
+            mmr = minMmr;
+        }
+        else{
+            this.mmr -= 1;
+        }
     }
 /* 
     public void setId(int id){
@@ -67,7 +98,6 @@ public class Player{
                 String[] info = line.split(" ");
                 if (info[0].equals(username)) {
                     stats.add(Integer.parseInt(info[3]));
-                    stats.add(Integer.parseInt(info[4]));
                     break;
                 }
             }

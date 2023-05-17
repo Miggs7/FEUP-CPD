@@ -21,7 +21,7 @@ import java.io.*;
     }
 
     public void start() throws IOException {
-        Boolean waiting = false;
+        Boolean playing = false;
 
         System.out.println("Connected to server.");
         Scanner scanner = new Scanner(System.in);
@@ -121,7 +121,7 @@ import java.io.*;
 
         // lobby
 
-        while (authenticated) {
+        while (authenticated && !playing) {
             System.out.println("Match Type:");
             System.out.println("1. Simple");
             System.out.println("2. Ranked");
@@ -164,52 +164,62 @@ import java.io.*;
                 keyIterator.remove();
                 
                 // response parsing
-                if (response.equals("Waiting for opponent...")) {
-                    waiting = true;
+                if (response.equals("Added to waiting queue.")) {
+                    playing = true;
                     break;
                 } else {
                     System.out.println("Invalid response from server.");
                     continue;
                 }
             }
-        }
 
-        // wait for opponent
-        // waiting for opponent
-        while (waiting) {
-            System.out.println("Waiting for opponent...");
-            
-            // Read the response from the server
-            int channels = selector.select();
-            if (channels == 0) {
-                continue;
-            }
 
-            Set<SelectionKey> selectedKeys = selector.selectedKeys();
-            Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
-
-            while (keyIterator.hasNext()) {
-                SelectionKey key = keyIterator.next();
-                String response = null;
-
-                if (key.isReadable()) {
-                    SocketChannel serverSocketChannel = (SocketChannel) key.channel();
-                    ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
-                    int bytesRead = serverSocketChannel.read(responseBuffer);
-                    if (bytesRead == -1) {
-                        serverSocketChannel.close();
-                        key.cancel();
-                        continue;
-                    }
-                    response = new String(responseBuffer.array(), 0, bytesRead);
-                    System.out.println("Received response: " + response);
-                    responseBuffer.clear();
+            while (playing) {
+                System.out.println("Game started.");
+                
+                // Read the response from the server
+                channels = selector.select();
+                if (channels == 0) {
+                    continue;
                 }
-                keyIterator.remove();
-                // response parsing
+
+                selectedKeys = selector.selectedKeys();
+                keyIterator = selectedKeys.iterator();
+
+                while (keyIterator.hasNext()) {
+                    SelectionKey key = keyIterator.next();
+                    String response = null;
+
+                    if (key.isReadable()) {
+
+                        // Read the msg from the server
+                        SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+                        ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
+                        int bytesRead = serverSocketChannel.read(responseBuffer);
+                        if (bytesRead == -1) {
+                            serverSocketChannel.close();
+                            key.cancel();
+                            continue;
+                        }
+                        response = new String(responseBuffer.array(), 0, bytesRead);
+                        System.out.println("Received response: " + response);
+                        responseBuffer.clear();
+
+                        if (response.contains("Game over.")) {
+                            playing = false;
+                            break;
+                        }
+
+                        // Send the msg to the server
+                        message = scanner.nextLine();
+                        System.out.println("Sending message to server: " + message);
+                        buffer = ByteBuffer.wrap(message.getBytes());
+                        socketChannel.write(buffer);
+                    }
+                    keyIterator.remove();
+                }
             }
         }
-
 
 
         /*

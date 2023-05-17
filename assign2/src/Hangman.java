@@ -3,45 +3,26 @@ import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.List;
 
-public class Hangman {
+public class Hangman{
 
     // word list
     private final String[] WORDS = {"hangman", "java", "programming", "computer", "algorithm", "optimization", "bananas", "total", "integer", "souto", "pedro"};
-    private final int num_of_rounds = 3;
+    private final int MAX_ATTEMPTS = 6;
 
     // game properties
     private String word;
-    private Map<Player, Integer> playerAttempts;
-    private Map<Player, Integer> playerScore;
-    private Map<Player, List<Character>> guessedLetters;
+    private char[] guessedLetters;
+    private int numAttempts;
     private boolean isGameOver;
-    private int round;
+    private int playerScore;
 
-    
-    public Hangman() {
-        this.word = "";
-        this.playerAttempts = new HashMap<>();
-        this.playerScore = new HashMap<>();
-        this.guessedLetters = new HashMap<>();
-        this.isGameOver = false;
-        this.round = 0;
-    }
-
-    public void setup(List<Player> connectedPlayers) {
+    public Hangman(List<Player> connectedPlayers) {
         this.word = getRandomWord();
-        this.playerAttempts = new HashMap<>();
-        this.playerScore = new HashMap<>();
-        this.guessedLetters = new HashMap<>();
+        this.guessedLetters = new char[word.length()];
+        this.numAttempts = 0;
         this.isGameOver = false;
-        this.round = 0;
-
-        for (Player player : connectedPlayers) {
-            playerAttempts.put(player, 5);
-            playerScore.put(player, 0);
-            guessedLetters.put(player, new ArrayList<>());
-        }
+        this.playerScore = 0;
     }
-
 
     /* 
     public static String getUserById(int id) {
@@ -65,7 +46,7 @@ public class Hangman {
         return null;
     }
     */
-
+/* 
     public void runGame(SocketChannel sc) {
 
         Scanner scanner = new Scanner(System.in);
@@ -94,7 +75,7 @@ public class Hangman {
         
                     if (word.contains(String.valueOf(letter))) {
                         updateGuessedLetters(letter, word, guessedLetters);
-                        /*save the guessed letter*/
+                        //save the guessed letter
                         GameSession.saveLetter(letter);
                         if (isWordGuessed(guessedLetters)) {
                             int score = 0;
@@ -154,37 +135,63 @@ public class Hangman {
         }
             
     
+    }*/
+
+    public void processGuess(String guess) {
+        char letter = guess.charAt(0);
+        boolean isCorrectGuess = false;
+
+        for (int i = 0; i < word.length(); i++) {
+            if (word.charAt(i) == letter) {
+                guessedLetters[i] = letter;
+                isCorrectGuess = true;
+            }
+        }
+
+        if (!isCorrectGuess) {
+            numAttempts++;
+        }
+
+        if (numAttempts >= MAX_ATTEMPTS || isWordGuessed()) {
+            isGameOver = true;
+            updateScores();
+        }
     }
         
-    private static String getRandomWord() {
+    private String getRandomWord() {
         int index = (int) (Math.random() * WORDS.length);
         return WORDS[index];
     }
 
-    private static boolean isLetterGuessed(char letter, char[] guessedLetters) {
-        for (char c : guessedLetters) {
-            if (c == letter) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static void updateGuessedLetters(char letter, String word, char[] guessedLetters) {
-        for (int i = 0; i < word.length(); i++) {
-            if (word.charAt(i) == letter) {
-                guessedLetters[i] = letter;
-            }
-        }
-    }
-
-    private static boolean isWordGuessed(char[] guessedLetters) {
+    private boolean isWordGuessed() {
         for (char c : guessedLetters) {
             if (c == 0) {
                 return false;
             }
         }
         return true;
+    }
+
+    private void updateScores() {
+        if (isWordGuessed()) {
+            playerScore += 10;
+        }
+    }
+
+    public String getGameStatus() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Current word: ").append(new String(guessedLetters)).append("\n");
+        sb.append("Attempts remaining: ").append(MAX_ATTEMPTS - numAttempts).append("\n");
+        return sb.toString();
+    }
+
+/* 
+    private static void updateGuessedLetters(char letter, String word, char[] guessedLetters) {
+        for (int i = 0; i < word.length(); i++) {
+            if (word.charAt(i) == letter) {
+                guessedLetters[i] = letter;
+            }
+        }
     }
 
     private static String getWordStatus(String word, char[] guessedLetters) {
@@ -198,5 +205,13 @@ public class Hangman {
             status.append(" ");
         }
         return status.toString();
+    }*/
+
+    public boolean isGameOver() {
+        return isGameOver;
+    }
+
+    public int getScore() {
+        return playerScore;
     }
 }
