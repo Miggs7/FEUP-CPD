@@ -58,7 +58,7 @@ public class Server {
             File file = new File("server.txt");
             FileWriter fw = new FileWriter(file, true);
             BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(username + " " + password + " " + token + "1" + "0");
+            bw.write(username + " " + password + " " + token + " " + "0");
             bw.newLine();
             bw.close();
         } catch (IOException e) {
