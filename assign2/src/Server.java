@@ -178,6 +178,7 @@ public class Server {
                 case ("register"): {
                     String username = fields[1];
                     String password = fields[2];
+
                     response = register(username, password);
                     break;
                 }

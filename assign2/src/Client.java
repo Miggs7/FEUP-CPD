@@ -282,7 +282,7 @@ import java.io.*;
             File file = new File("local.txt");
             FileWriter fw = new FileWriter(file, true);
             BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(username + " " + token + "\n");
+            bw.write(username + " " + token + " " + "0" + "\n");
             bw.close();
         } catch (Exception e) {
             e.printStackTrace();
