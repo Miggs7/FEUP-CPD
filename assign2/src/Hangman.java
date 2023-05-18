@@ -141,6 +141,7 @@ public class Hangman{
         char letter = guess.charAt(0);
         boolean isCorrectGuess = false;
 
+
         for (int i = 0; i < word.length(); i++) {
             if (word.charAt(i) == letter) {
                 guessedLetters[i] = letter;
@@ -165,7 +166,7 @@ public class Hangman{
 
     private boolean isWordGuessed() {
         for (char c : guessedLetters) {
-            if (c == 0) {
+            if (c == '\0') {
                 return false;
             }
         }
@@ -178,9 +179,26 @@ public class Hangman{
         }
     }
 
+    public String formatGuessedWord(){
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < word.length();i++){
+            if(guessedLetters.length == 0){
+                if(word.charAt(i) == guessedLetters[i]){
+                    sb.append(word.charAt(i) + " ");
+                }else{
+                    sb.append("_ ");
+                }
+            }else{
+                sb.append("_ ");
+            }
+            
+        }
+        return sb.toString();
+    }
+
     public String getGameStatus() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Current word: ").append(new String(guessedLetters)).append("\n");
+        sb.append("Current word: ").append(formatGuessedWord()).append("\n");
         sb.append("Attempts remaining: ").append(MAX_ATTEMPTS - numAttempts).append("\n");
         return sb.toString();
     }

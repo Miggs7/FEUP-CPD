@@ -269,10 +269,13 @@ import java.io.*;
                     break;
                 }
             }
+
+            br.close();
+            
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        
         return token;
     }
 
