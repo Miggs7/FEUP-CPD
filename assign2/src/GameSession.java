@@ -1,3 +1,8 @@
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,18 +22,24 @@ public class GameSession {
     private List<Player> connectedPlayers;
     private int capacity;
     private ExecutorService threadPool;
+    private Selector selector;
 
     // game properties
     private Hangman game;
     private Map<Player, Integer> playerScores;
 
-    public GameSession(List<Player> connectedPlayers, int capacity){
+    public GameSession(List<Player> connectedPlayers, int capacity, Selector selector){
         this.status = Status.READY;
         this.connectedPlayers = connectedPlayers;
         this.capacity = capacity;
         this.threadPool = Executors.newFixedThreadPool(capacity);
-        this.game = new Hangman(connectedPlayers);
         this.playerScores = new HashMap<>();
+        this.selector = selector;
+
+        for (Player player : connectedPlayers) {
+            playerScores.put(player, 0);
+        }
+        //System.out.println("Selector" + selector);
     }
 
     public void addPlayer(Player player){
@@ -40,22 +51,47 @@ public class GameSession {
     }
 
     public void startGame(){
+        System.out.println("Starting game in SESSION");
         this.status = Status.IN_PROGRESS;
         Lock scoresLock = new ReentrantLock();
         // start game
         for (Player player : connectedPlayers) {
             // game loop for each player
             threadPool.execute(() -> {
-                GameHandler gameHandler = new GameHandler(player, game, playerScores, scoresLock);
-                gameHandler.run();
+
+                Player currentPlayer = player;
+                ByteBuffer buffer = ByteBuffer.allocate(1024);
+
+                try {
+                    int bytesRead = currentPlayer.getSocketChannel().read(buffer);
+
+                    if (bytesRead == -1) {
+                        System.out.println("Client closed connection");
+                        currentPlayer.getSocketChannel().close();
+                        return;
+                    } else {
+                        buffer.flip();
+                        byte[] data = new byte[buffer.remaining()];
+                        buffer.get(data);
+                        String receivedMessage = new String(data);
+
+                        System.out.println("Received message: " + receivedMessage);
+
+                        buffer.clear();
+
+                        // send message to player
+                        currentPlayer.getSocketChannel().write(ByteBuffer.wrap("Game is starting...".getBytes()));
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                
             });
         }
     }
 
     public void checkStatus(){
-        if(game.isGameOver()){
-            this.status = Status.ENDED;
-        }
+        this.status = Status.ENDED;
     }
 
     public void shutDown(){
@@ -66,51 +102,4 @@ public class GameSession {
     public Status getStatus(){
         return this.status;
     }
-
-
-    /* word 
-    public static void saveWord(String newWord){
-        word = newWord; 
-    }
-
-    public static String loadWord(){
-        return word;
-    }*/
-
-    /*save Letter
-    public static void saveLetter(Character letter){
-        guessedLetters.add(letter);
-    }
-
-    public static List<Character> loadGuessedLetters(){
-        return guessedLetters;
-    }*/
-
-    /*player info
-    public static void savePlayers(Map<String, SocketChannel> newConnectedClients,Player player){
-        connectedPlayers.add(player);
-        connectedClients = newConnectedClients;
-    }
-
-    public static Map<String,SocketChannel> loadClients(){
-        return connectedClients;
-    }
-
-    public static List<Player> loadPlayers(){
-        return connectedPlayers;
-    }
-*/
-    /*remaning attempts 
-    public static void saveRemainingAttempts(int tries){
-        remainingAttempts = tries;
-    }
-
-    public int loadRemainingAttempts(){
-        return remainingAttempts;
-    }
-*/
-    /*isGameOver
-    public boolean isGameOver(){
-        return isGameOver;
-    }*/
 }

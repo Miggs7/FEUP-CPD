@@ -16,7 +16,7 @@ public class Hangman{
     private boolean isGameOver;
     private int playerScore;
 
-    public Hangman(List<Player> connectedPlayers) {
+    public Hangman() {
         this.word = getRandomWord();
         this.guessedLetters = new char[word.length()];
         this.numAttempts = 0;
@@ -138,6 +138,16 @@ public class Hangman{
     }*/
 
     public void processGuess(String guess) {
+        if (guess.length() != 1) {  // a word
+            if (guess.equals(word)) {
+                isGameOver = true;
+                updateScores();
+            } else {
+                numAttempts++;
+            }
+            return;
+        }
+
         char letter = guess.charAt(0);
         boolean isCorrectGuess = false;
 
@@ -198,12 +208,12 @@ public class Hangman{
 
     public String getGameStatus() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Current word: ").append(formatGuessedWord()).append("\n");
+        sb.append("Current word: ").append(getWordStatus(word, guessedLetters)).append("\n");
         sb.append("Attempts remaining: ").append(MAX_ATTEMPTS - numAttempts).append("\n");
         return sb.toString();
     }
 
-/* 
+
     private static void updateGuessedLetters(char letter, String word, char[] guessedLetters) {
         for (int i = 0; i < word.length(); i++) {
             if (word.charAt(i) == letter) {
@@ -223,13 +233,15 @@ public class Hangman{
             status.append(" ");
         }
         return status.toString();
-    }*/
+    }
 
     public boolean isGameOver() {
         return isGameOver;
     }
 
     public int getScore() {
-        return playerScore;
+        synchronized (this) {
+            return playerScore;
+        }
     }
 }

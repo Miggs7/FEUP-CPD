@@ -1,13 +1,13 @@
 import java.io.*;
-    import java.net.*;
-    import java.nio.ByteBuffer;
-    import java.nio.channels.*;
-    import java.nio.channels.SelectionKey;
-    import java.util.*;
-    import java.util.concurrent.*;
+import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.util.*;
+import java.util.concurrent.*;
 
 
-    public class Client {
+public class Client {
     private SocketChannel socketChannel;
     private Selector selector;
     private boolean authenticated = false;
@@ -22,7 +22,7 @@ import java.io.*;
     }
 
     public void start() throws IOException {
-        Boolean playing = false;
+        Boolean playing = false, waiting = true;
 
         System.out.println("Connected to server.");
         Scanner scanner = new Scanner(System.in);
@@ -166,20 +166,79 @@ import java.io.*;
                 
                 // response parsing
                 if (response.equals("Added to waiting queue.")) {
-                    playing = true;
+                    waiting = true;
                     break;
                 } else {
                     System.out.println("Invalid response from server.");
+                    waiting = false;
                     continue;
                 }
             }
 
+            while (waiting) {
+                // Always read from the server until the game starts
+                channels = selector.select();
+                if (channels == 0) {
+                    continue;
+                }
+
+                selectedKeys = selector.selectedKeys();
+                keyIterator = selectedKeys.iterator();
+
+                while(keyIterator.hasNext()) {
+                    SelectionKey key = keyIterator.next();
+                    String response = null;
+
+                    if (key.isReadable()) {
+                        SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+                        ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
+                        int bytesRead = serverSocketChannel.read(responseBuffer);
+                        if (bytesRead == -1) {
+                            serverSocketChannel.close();
+                            key.cancel();
+                            continue;
+                        }
+                        response = new String(responseBuffer.array(), 0, bytesRead);
+                        System.out.println("Received response: " + response);
+                        responseBuffer.clear();
+                    }
+                    keyIterator.remove();
+
+                    if (response.equals("Game starting.")) {
+                        waiting = false;
+                        playing = true;
+                        break;
+                    }
+                }
+            }
+            buffer.clear();
 
             while (playing) {
-                System.out.println("Game started.");
+                System.out.println("Game is running.");
+
+            message = "Hello, server!";
+            buffer.put(message.getBytes());
+            buffer.flip();
+            socketChannel.write(buffer);
+            buffer.clear();
+
+            // Receive data from the server
+            int bytesRead = socketChannel.read(buffer);
+            if (bytesRead == -1) {
+                System.out.println("Server closed connection");
+                socketChannel.close();
+                return;
+            }
+
+            buffer.flip();
+            byte[] data = new byte[buffer.remaining()];
+            buffer.get(data);
+            String receivedMessage = new String(data);
+
+            System.out.println("Received message from server: " + receivedMessage);
                 
-                // Read the response from the server
-                channels = selector.select();
+                // Read the response from the server thread
+                /*channels = selector.select();
                 if (channels == 0) {
                     continue;
                 }
@@ -207,6 +266,7 @@ import java.io.*;
                         responseBuffer.clear();
 
                         if (response.contains("Game over.")) {
+                            System.out.println("Game over. Back to lobby.");
                             playing = false;
                             break;
                         }
@@ -218,7 +278,9 @@ import java.io.*;
                         socketChannel.write(buffer);
                     }
                     keyIterator.remove();
-                }
+                }*/
+
+
             }
         }
 

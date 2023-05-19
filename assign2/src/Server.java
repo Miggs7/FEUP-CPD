@@ -191,6 +191,11 @@ public class Server {
                     response = match(username, matchType, token, socketChannel);
                     break;
                 }
+                case ("game"): {
+                    String guess = fields[1];
+                    String token = fields[2];
+                    response = game(guess, token, socketChannel);
+                }
                 // default
                 default: {
                     response = "Invalid command.";
@@ -226,6 +231,7 @@ public class Server {
 
         while (sessionIterator.hasNext()) {
             GameSession gameSession = sessionIterator.next();
+            System.out.println("Game session status: " + gameSession.getStatus());
             
             switch (gameSession.getStatus()) {
                 case READY:
@@ -252,7 +258,7 @@ public class Server {
 
         while (rankedSessionIterator.hasNext()) {
             GameSession gameSession = rankedSessionIterator.next();
-            
+            System.out.println("Game session status: " + gameSession.getStatus());
             switch (gameSession.getStatus()) {
                 case READY:
                     // start the game
@@ -261,6 +267,7 @@ public class Server {
                     break;
                 case IN_PROGRESS:
                     // skip
+                    gameSession.checkStatus();
                     System.out.println("Game in progress.");
                     break;
                 case ENDED:
@@ -282,7 +289,9 @@ public class Server {
         // authenticate or register
         while (true) {
 
-            ThreadGroup rootGroup = Thread.currentThread().getThreadGroup().getParent();
+
+            //System.out.println("Selector" + selector);
+        /*ThreadGroup rootGroup = Thread.currentThread().getThreadGroup().getParent();
         
         // Keep iterating until we find the root thread group
         while (rootGroup.getParent() != null) {
@@ -303,7 +312,7 @@ public class Server {
                 System.out.println("Thread state: " + thread.getState());
                 System.out.println("--------------------------------------");
             }
-        }
+        }*/
 
             selector.select();
 
@@ -427,8 +436,10 @@ public class Server {
             players.add(player2);
 
             // create a new game session
-            GameSession gameSession = new GameSession(players, 2);
+            GameSession gameSession = new GameSession(players, 2, selector);
             gameSessions.add(gameSession);
+            sendMsg("Game starting.", player1);
+            sendMsg("Game starting.", player2);
         }
 
         if (rankedWaitingPlayers.size() >= 2) {
@@ -447,8 +458,19 @@ public class Server {
             players.add(player2);
 
             // create a new game session
-            GameSession gameSession = new GameSession(players, 2);
+            GameSession gameSession = new GameSession(players, 2, selector);
             rankedGameSessions.add(gameSession);
+            sendMsg("Game starting.", player1);
+            sendMsg("Game starting.", player2);
+        }
+    }
+
+    public void sendMsg(String msg, Player player) {
+        try {
+            ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
+            player.getSocketChannel().write(buffer);
+        } catch (IOException e) {
+            System.out.println("Error sending message to client.");
         }
     }
 }
