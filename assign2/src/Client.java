@@ -176,6 +176,7 @@ public class Client {
             }
 
             while (waiting) {
+                System.out.println("Breakpoint0");
                 // Always read from the server until the game starts
                 channels = selector.select();
                 if (channels == 0) {
@@ -201,21 +202,93 @@ public class Client {
                         response = new String(responseBuffer.array(), 0, bytesRead);
                         System.out.println("Received response: " + response);
                         responseBuffer.clear();
+                        System.out.println("Breakpoint0.5");
                     }
                     keyIterator.remove();
 
+                    
+
                     if (response.equals("Game starting.")) {
+                        System.out.println("Breakpoint1");
                         waiting = false;
-                        playing = true;
                         break;
                     }
                 }
             }
             buffer.clear();
 
+            // read 2 messages from the server
+            channels = selector.select();
+            if (channels == 0) {
+                continue;
+            }
+
+            selectedKeys = selector.selectedKeys();
+            keyIterator = selectedKeys.iterator();
+
+            while(keyIterator.hasNext()) {
+                SelectionKey key = keyIterator.next();
+                String response = null;
+
+                if (key.isReadable()) {
+                    SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+                    ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
+                    int bytesRead = serverSocketChannel.read(responseBuffer);
+                    if (bytesRead == -1) {
+                        serverSocketChannel.close();
+                        key.cancel();
+                        continue;
+                    }
+                    response = new String(responseBuffer.array(), 0, bytesRead);
+                    System.out.println("Received response: " + response);
+                    responseBuffer.clear();
+                }
+                keyIterator.remove();
+
+                if (response.contains("Word:")) {
+                    System.out.println("Breakpoint2");
+                    waiting = false;
+                    playing = true;
+                    break;
+                }
+            }
+
+            
             while (playing) {
-                
-                
+                // write a guess and read the response
+                System.out.println("Please enter a guess: ");
+                String guess = scanner.nextLine();
+                buffer = ByteBuffer.wrap(guess.getBytes());
+                socketChannel.write(buffer);
+
+                // Read the response from the server
+                channels = selector.select();
+                if (channels == 0) {
+                    continue;
+                }
+    
+                selectedKeys = selector.selectedKeys();
+                keyIterator = selectedKeys.iterator();
+    
+                while(keyIterator.hasNext()) {
+                    SelectionKey key = keyIterator.next();
+                    String response = null;
+    
+                    if (key.isReadable()) {
+                        SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+                        ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
+                        int bytesRead = serverSocketChannel.read(responseBuffer);
+                        if (bytesRead == -1) {
+                            serverSocketChannel.close();
+                            key.cancel();
+                            continue;
+                        }
+                        response = new String(responseBuffer.array(), 0, bytesRead);
+                        System.out.println("Received response: " + response);
+                        responseBuffer.clear();
+                    }
+                    keyIterator.remove();
+                }
             }
         }
 

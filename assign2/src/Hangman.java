@@ -25,22 +25,45 @@ class Hangman {
         incorrectGuesses = 0;
     }
 
-    public boolean makeGuess(char guess) {
-        if (guessedLetters.contains(guess)) {
-            // Letter has already been guessed
-            return false;
+    public boolean makeGuess(String guess) {
+        // check if the guess is the same as the word
+        if (guess.length() == word.length()) {
+            if (guess.equals(word)) {
+                // guessed the word
+                maskedWord = new StringBuilder(word);
+                return true;
+            } else {
+                // incorrect guess
+                incorrectGuesses++;
+                return false;
+            }
         }
 
-        guessedLetters.add(guess);
+        if (guess.length() == 1) {
+            // check if the guess is a letter
+            if (!Character.isLetter(guess.charAt(0))) {
+                return false;
+            }
 
+            // check if the letter has already been guessed
+            if (guessedLetters.contains(guess.charAt(0))) {
+                return false;
+            }
+        }
+
+        // check if the guess is a letter in the word
         boolean isCorrectGuess = false;
         for (int i = 0; i < word.length(); i++) {
-            if (word.charAt(i) == guess) {
-                maskedWord.setCharAt(i, guess);
+            if (word.charAt(i) == guess.charAt(0)) {
+                maskedWord.setCharAt(i, guess.charAt(0));
                 isCorrectGuess = true;
             }
         }
 
+        // update guessed letters
+        guessedLetters.add(guess.charAt(0));
+
+        // update incorrect guesses
         if (!isCorrectGuess) {
             incorrectGuesses++;
         }
@@ -61,6 +84,10 @@ class Hangman {
     }
 
     public String getMaskedWord() {
-        return maskedWord.toString();
+        String aux = "Word:";
+        for (int i = 0; i < maskedWord.length(); i++) {
+            aux += " " + maskedWord.charAt(i);
+        }
+        return aux;
     }
 }

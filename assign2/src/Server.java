@@ -10,7 +10,7 @@ import java.security.*;
 public class Server {
    
     private ServerSocketChannel serverSocketChannel;
-    private Selector selector;
+    public static Selector selector;
     private List<Player> connectedPlayers;
 
     private Queue<Player> waitingPlayers;
@@ -21,7 +21,7 @@ public class Server {
     public Server(int port) throws IOException {
         this.serverSocketChannel = ServerSocketChannel.open();
         this.serverSocketChannel.bind(new InetSocketAddress(port));
-        this.selector = Selector.open();
+        Server.selector = Selector.open();
         this.serverSocketChannel.configureBlocking(false);
         this.serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
@@ -110,12 +110,22 @@ public class Server {
         }
         switch (matchType) {
             case ("1"): {
-                // add the player to the unranked waiting queue
+                // check if the player is already in the queue
+                for (Player p : waitingPlayers) {
+                    if (p.getName().equals(username)) {
+                        return "Already in queue.";
+                    }
+                }
                 response = "Added to waiting queue.";
                 break;
             }
             case ("2"): {
-                // obtain the corresponding player object by socket channel
+                // check if the player is already in the queue
+                for (Player p : rankedWaitingPlayers) {
+                    if (p.getName().equals(username)) {
+                        return "Already in queue.";
+                    }
+                }
                 response = "Added to waiting queue.";
                 break;
             }
@@ -124,7 +134,7 @@ public class Server {
                 break;
             }
         }
-        addPlayerToQueue(player, Integer.parseInt(matchType));
+        addPlayerToQueue(player, Integer.parseInt(matchType) - 1);
         return response;
     }
 
@@ -260,12 +270,12 @@ public class Server {
             }
 
             if (waitingPlayers.size() >= this.playerPerGame) {
-                //buildMatch(0);
+                buildMatch(0);
                 System.out.println("There are enough players to build a match.");
             }
             
             if (rankedWaitingPlayers.size() >= this.playerPerGame) {
-                //buildMatch(1);
+                buildMatch(1);
                 System.out.println("There are enough players to build a match.");
             }
         }
@@ -337,14 +347,15 @@ public class Server {
         System.out.println("Building match for type " + matchTypeStr);
 
         Queue<Player> queue = matchType==0 ? waitingPlayers : rankedWaitingPlayers;
-
-        Thread matchThread = new Thread(new MatchThread(queue));
+        // create a copy of the queue
+        Queue<Player> queueCopy = new LinkedList<>(queue);
+        // create a thread to handle the match
+        Thread matchThread = new Thread(new MatchThread(queueCopy));
         matchThread.start();
-
+        
         for (int i = 0; i < this.playerPerGame; i++) {
             Player player = queue.poll();
             System.out.println("Player " + player.getName() + " removed from " + matchTypeStr + " match queue.");
         }
     }
-
 }
