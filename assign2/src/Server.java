@@ -13,33 +13,21 @@ public class Server {
     private Selector selector;
     private List<Player> connectedPlayers;
 
-    private List<Player> waitingPlayers;
-    private List<Player> rankedWaitingPlayers;
+    private Queue<Player> waitingPlayers;
+    private Queue<Player> rankedWaitingPlayers;
 
-    private List<GameSession> gameSessions;
-    private List<GameSession> rankedGameSessions;
-
-/* 
-    public static String sessionWord = "";
-    public static List<Character> sessionGuessedLetters = new ArrayList<>();
-    public static Map<String,SocketChannel> sessionConnectedClients;
-    public static List<Player> players = new ArrayList<>();
-    public static int sessionRemainingAttempts = 0;
-    public static boolean gameSessionOver = false;
-    */
+    private final int playerPerGame = 2;
 
     public Server(int port) throws IOException {
-        serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.bind(new InetSocketAddress(port));
-        selector = Selector.open();
-        serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+        this.serverSocketChannel = ServerSocketChannel.open();
+        this.serverSocketChannel.bind(new InetSocketAddress(port));
+        this.selector = Selector.open();
+        this.serverSocketChannel.configureBlocking(false);
+        this.serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-        connectedPlayers = new ArrayList<>();
-        waitingPlayers = new ArrayList<>();
-        rankedWaitingPlayers = new ArrayList<>();
-        gameSessions = new ArrayList<>();
-        rankedGameSessions = new ArrayList<>();
+        this.connectedPlayers = new ArrayList<>();
+        this.waitingPlayers = new LinkedList<>();
+        this.rankedWaitingPlayers = new LinkedList<>();
     }
 
     public String register(String username, String password) {
@@ -123,13 +111,11 @@ public class Server {
         switch (matchType) {
             case ("1"): {
                 // add the player to the unranked waiting queue
-                waitingPlayers.add(player);
                 response = "Added to waiting queue.";
                 break;
             }
             case ("2"): {
                 // obtain the corresponding player object by socket channel
-                rankedWaitingPlayers.add(player);
                 response = "Added to waiting queue.";
                 break;
             }
@@ -138,14 +124,7 @@ public class Server {
                 break;
             }
         }
-        /* 
-        for (Player p : waitingPlayers) {
-            System.out.println(p.getName());
-        }
-        for (Player p : rankedWaitingPlayers) {
-            System.out.println(p.getName());
-        }
-        */
+        addPlayerToQueue(player, Integer.parseInt(matchType));
         return response;
     }
 
@@ -191,11 +170,6 @@ public class Server {
                     response = match(username, matchType, token, socketChannel);
                     break;
                 }
-                case ("game"): {
-                    String guess = fields[1];
-                    String token = fields[2];
-                    response = game(guess, token, socketChannel);
-                }
                 // default
                 default: {
                     response = "Invalid command.";
@@ -225,72 +199,10 @@ public class Server {
         return response;
     }
 
-    private void runGameSessions() {
-        Iterator<GameSession> sessionIterator = gameSessions.iterator();
-        Iterator<GameSession> rankedSessionIterator = rankedGameSessions.iterator();
-
-        while (sessionIterator.hasNext()) {
-            GameSession gameSession = sessionIterator.next();
-            System.out.println("Game session status: " + gameSession.getStatus());
-            
-            switch (gameSession.getStatus()) {
-                case READY:
-                    // start the game
-                    System.out.println("Starting game.");
-                    gameSession.startGame();
-                    break;
-                case IN_PROGRESS:
-                    // check status
-                    System.out.println("Game in progress.");
-                    gameSession.checkStatus();
-                    break;
-                case ENDED:
-                    // remove the game session
-                    System.out.println("Game ended.");
-                    gameSession.shutDown();
-                    sessionIterator.remove();
-                    break;
-                default:
-                    //error
-                    break;
-            }
-        }
-
-        while (rankedSessionIterator.hasNext()) {
-            GameSession gameSession = rankedSessionIterator.next();
-            System.out.println("Game session status: " + gameSession.getStatus());
-            switch (gameSession.getStatus()) {
-                case READY:
-                    // start the game
-                    System.out.println("Starting game.");
-                    gameSession.startGame();
-                    break;
-                case IN_PROGRESS:
-                    // skip
-                    gameSession.checkStatus();
-                    System.out.println("Game in progress.");
-                    break;
-                case ENDED:
-                    // remove the game session
-                    System.out.println("Game ended.");
-                    gameSession.shutDown();
-                    sessionIterator.remove();
-                    break;
-                default:
-                    //error
-                    break;
-            }
-        }
-    }
-
     public void start() throws IOException {
         System.out.println("Server started.");
 
-        // authenticate or register
         while (true) {
-
-
-            //System.out.println("Selector" + selector);
         /*ThreadGroup rootGroup = Thread.currentThread().getThreadGroup().getParent();
         
         // Keep iterating until we find the root thread group
@@ -332,13 +244,9 @@ public class Server {
                     clientChannel.configureBlocking(false);
                     clientChannel.register(selector, SelectionKey.OP_READ);
                 } else if (key.isReadable()) {
-                    // threadPool should be used here
                     SocketChannel clientChannel = (SocketChannel) key.channel();
                     System.out.println("New message from client: " + clientChannel.getRemoteAddress());
                     String response = handleRequest(clientChannel);
-                    /*for (Player player : connectedPlayers) {
-                        response += " " + player.getName();
-                    }*/
                     System.out.println("Sending message to client: " + response);
                     ByteBuffer buffer = ByteBuffer.wrap(response.getBytes());
 
@@ -351,8 +259,15 @@ public class Server {
                 iter.remove();
             }
 
-            buildMatches();
-            runGameSessions();
+            if (waitingPlayers.size() >= this.playerPerGame) {
+                //buildMatch(0);
+                System.out.println("There are enough players to build a match.");
+            }
+            
+            if (rankedWaitingPlayers.size() >= this.playerPerGame) {
+                //buildMatch(1);
+                System.out.println("There are enough players to build a match.");
+            }
         }
     }
 
@@ -406,71 +321,30 @@ public class Server {
         }
         return users;
     }
-    /* 
-    public static void gameHandler(){
-          sessionWord = GameSession.loadWord();
-          sessionGuessedLetters = GameSession.loadGuessedLetters();
-          sessionConnectedClients = GameSession.loadClients();
-          players = GameSession.loadPlayers();
-          sessionRemainingAttempts = GameSession.loadRemainingAttempts();
-          gameSessionOver = GameSession.isGameOver();
 
-          //runGame();
-    }*/
-
-
-    private void buildMatches(){
-        if (waitingPlayers.size() >= 2) {
-            System.out.println("Waiting simple players: " + waitingPlayers.size());
-            // get the first two players from the waiting queue
-            Player player1 = waitingPlayers.get(0);
-            Player player2 = waitingPlayers.get(1);
-
-            // remove the players from the waiting queue
-            waitingPlayers.remove(player1);
-            waitingPlayers.remove(player2);
-
-            // make a list of the two players
-            List<Player> players = new ArrayList<Player>();
-            players.add(player1);
-            players.add(player2);
-
-            // create a new game session
-            GameSession gameSession = new GameSession(players, 2, selector);
-            gameSessions.add(gameSession);
-            sendMsg("Game starting.", player1);
-            sendMsg("Game starting.", player2);
-        }
-
-        if (rankedWaitingPlayers.size() >= 2) {
-            System.out.println("Waiting ranked players: " + rankedWaitingPlayers.size());
-            // get the first two players from the waiting queue
-            Player player1 = rankedWaitingPlayers.get(0);
-            Player player2 = rankedWaitingPlayers.get(1);
-
-            // remove the players from the waiting queue
-            rankedWaitingPlayers.remove(player1);
-            rankedWaitingPlayers.remove(player2);
-
-            // make a list of the two players
-            List<Player> players = new ArrayList<Player>();
-            players.add(player1);
-            players.add(player2);
-
-            // create a new game session
-            GameSession gameSession = new GameSession(players, 2, selector);
-            rankedGameSessions.add(gameSession);
-            sendMsg("Game starting.", player1);
-            sendMsg("Game starting.", player2);
+    public synchronized void addPlayerToQueue(Player player, int matchType) {
+        if (matchType == 0) {
+            waitingPlayers.add(player);
+            System.out.println("Player " + player.getName() + " added to simple match queue.");
+        } else {
+            rankedWaitingPlayers.add(player);
+            System.out.println("Player " + player.getName() + " added to ranked match queue.");
         }
     }
 
-    public void sendMsg(String msg, Player player) {
-        try {
-            ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
-            player.getSocketChannel().write(buffer);
-        } catch (IOException e) {
-            System.out.println("Error sending message to client.");
+    private synchronized void buildMatch(int matchType){
+        String matchTypeStr = matchType==0 ? "simple" : "ranked";
+        System.out.println("Building match for type " + matchTypeStr);
+
+        Queue<Player> queue = matchType==0 ? waitingPlayers : rankedWaitingPlayers;
+
+        Thread matchThread = new Thread(new MatchThread(queue));
+        matchThread.start();
+
+        for (int i = 0; i < this.playerPerGame; i++) {
+            Player player = queue.poll();
+            System.out.println("Player " + player.getName() + " removed from " + matchTypeStr + " match queue.");
         }
     }
+
 }

@@ -214,93 +214,10 @@ public class Client {
             buffer.clear();
 
             while (playing) {
-                System.out.println("Game is running.");
-
-            message = "Hello, server!";
-            buffer.put(message.getBytes());
-            buffer.flip();
-            socketChannel.write(buffer);
-            buffer.clear();
-
-            // Receive data from the server
-            int bytesRead = socketChannel.read(buffer);
-            if (bytesRead == -1) {
-                System.out.println("Server closed connection");
-                socketChannel.close();
-                return;
-            }
-
-            buffer.flip();
-            byte[] data = new byte[buffer.remaining()];
-            buffer.get(data);
-            String receivedMessage = new String(data);
-
-            System.out.println("Received message from server: " + receivedMessage);
                 
-                // Read the response from the server thread
-                /*channels = selector.select();
-                if (channels == 0) {
-                    continue;
-                }
-
-                selectedKeys = selector.selectedKeys();
-                keyIterator = selectedKeys.iterator();
-
-                while (keyIterator.hasNext()) {
-                    SelectionKey key = keyIterator.next();
-                    String response = null;
-
-                    if (key.isReadable()) {
-
-                        // Read the msg from the server
-                        SocketChannel serverSocketChannel = (SocketChannel) key.channel();
-                        ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
-                        int bytesRead = serverSocketChannel.read(responseBuffer);
-                        if (bytesRead == -1) {
-                            serverSocketChannel.close();
-                            key.cancel();
-                            continue;
-                        }
-                        response = new String(responseBuffer.array(), 0, bytesRead);
-                        System.out.println("Received response: " + response);
-                        responseBuffer.clear();
-
-                        if (response.contains("Game over.")) {
-                            System.out.println("Game over. Back to lobby.");
-                            playing = false;
-                            break;
-                        }
-
-                        // Send the msg to the server
-                        message = scanner.nextLine();
-                        System.out.println("Sending message to server: " + message);
-                        buffer = ByteBuffer.wrap(message.getBytes());
-                        socketChannel.write(buffer);
-                    }
-                    keyIterator.remove();
-                }*/
-
-
+                
             }
         }
-
-
-        /*
-        // game
-
-        while (true) {
-            System.out.println("Waiting for game to start...");
-            Hangman.runGame(socketChannel);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        */
-        // disconnect
-        // socketChannel.close();
-        // System.out.println("Disconnected from server.");
 
         scanner.close();
     }

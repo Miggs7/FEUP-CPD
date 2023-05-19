@@ -1,4 +1,5 @@
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.Scanner;
@@ -66,27 +67,6 @@ public class Player{
             this.mmr -= 1;
         }
     }
-/* 
-    public void setId(int id){
-        this.playerID = id;
-    }
-
-    public int getId(){
-        return this.playerID;
-    }
-
-    public void addScore(int num){
-        this.playerScore += num;
-    }
-
-    public int getScore(){
-        return this.playerScore;
-    }
-
-    public static String getNameById(int id){
-        return playerName;
-    }
-*/
 
     private List<Integer> obtainStats(String username) {
         List<Integer> stats = new ArrayList<>();
@@ -106,5 +86,15 @@ public class Player{
             System.out.println("Error reading from stats.txt");
         }
         return stats;
+    }
+
+    public void sendMsg(String msg){
+        try{
+            ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
+            socketChannel.write(buffer);
+        }
+        catch(IOException e){
+            System.out.println("Error sending message to client");
+        }
     }
 }
