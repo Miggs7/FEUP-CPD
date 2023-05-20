@@ -258,7 +258,10 @@ public class Client {
                 // write a guess and read the response
                 System.out.println("Please enter a guess: ");
                 String guess = scanner.nextLine();
-                buffer = ByteBuffer.wrap(guess.getBytes());
+                String send = "guess:" + username + ":" + guess + ":" + token;
+                
+                System.out.println("Sending message to server: " + send);
+                buffer = ByteBuffer.wrap(send.getBytes());
                 socketChannel.write(buffer);
 
                 // Read the response from the server

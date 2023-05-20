@@ -10,7 +10,7 @@ import java.security.*;
 public class Server {
    
     private ServerSocketChannel serverSocketChannel;
-    public static Selector selector;
+    private static Selector selector;
     private List<Player> connectedPlayers;
 
     private Queue<Player> waitingPlayers;
@@ -28,6 +28,10 @@ public class Server {
         this.connectedPlayers = new ArrayList<>();
         this.waitingPlayers = new LinkedList<>();
         this.rankedWaitingPlayers = new LinkedList<>();
+    }
+
+    public static Selector getSelector(){
+        return selector;
     }
 
     public String register(String username, String password) {
@@ -178,6 +182,17 @@ public class Server {
                     String matchType = fields[2];
                     String token = fields[3];
                     response = match(username, matchType, token, socketChannel);
+                    break;
+                }
+                case ("guess"): {
+                    String username = fields[1];
+                    String guess = fields[2];
+                    String token = fields[3];
+
+                    //process guess and masked word
+                    response = guess;
+
+                    System.out.println("received guess:" + username + ":" + guess + ":" + token);
                     break;
                 }
                 // default

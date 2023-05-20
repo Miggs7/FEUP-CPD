@@ -64,13 +64,13 @@ public class MatchThread implements Runnable{
         System.out.println("Waiting for player guess...");
         String guess = "";
 
-        Selector selector = Server.selector;
+        Selector selector = Server.getSelector();
 
         int channels;
         try {
             channels = selector.select();
             if (channels == 0) {
-            return "";
+            return "offline";
         }
         } catch (IOException e) {
             e.printStackTrace();
@@ -81,18 +81,21 @@ public class MatchThread implements Runnable{
         Iterator<SelectionKey> iterator = keys.iterator();
 
         while (iterator.hasNext()) {
+            System.out.println("grande");
             SelectionKey key = iterator.next();
-            String response = null;
+            //String response = null;
 
             if (key.isReadable()) {
                 SocketChannel channel = (SocketChannel) key.channel();
 
                 if (channel != player.getSocketChannel()) {
+                    System.out.println("no channel found");
                     return "";
                 }
                 ByteBuffer responseBuffer = ByteBuffer.allocate(1024);
                 try{
                     int bytesRead = channel.read(responseBuffer);
+                    System.out.println("bytesRead = " + bytesRead);
                     guess = new String(responseBuffer.array(), 0, bytesRead);
                 } catch (IOException e) {
                     return "";
