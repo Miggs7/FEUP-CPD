@@ -8,8 +8,9 @@ class Hangman {
     private StringBuilder maskedWord;
     private Set<Character> guessedLetters;
     private int incorrectGuesses;
+    private int type; // 0 for simple, 1 for ranked
 
-    public Hangman() {
+    public Hangman(int type) {
         // Select a random word
         Random random = new Random();
         int index = random.nextInt(WORDS.length);
@@ -21,7 +22,7 @@ class Hangman {
         for (int i = 0; i < word.length(); i++) {
             maskedWord.append("_");
         }
-
+        this.type = type;
         incorrectGuesses = 0;
     }
 
@@ -89,5 +90,30 @@ class Hangman {
             aux += " " + maskedWord.charAt(i);
         }
         return aux;
+    }
+
+    public String getRemainingAttempts() {
+        return "Remaining attempts: " + (MAX_GUESSES - incorrectGuesses);
+    }
+
+    public Hangman clone() {
+        Hangman clone = new Hangman(this.type);
+        clone.word = word;
+        clone.maskedWord = new StringBuilder(maskedWord);
+        clone.guessedLetters = new HashSet<>(guessedLetters);
+        clone.incorrectGuesses = incorrectGuesses;
+        return clone;
+    }
+
+    public String getType() {
+        if (type == 0) {
+            return "Simple";
+        } else {
+            return "Ranked";
+        }
+    }
+
+    public Set<Character> getGuessedLetters() {
+        return guessedLetters;
     }
 }

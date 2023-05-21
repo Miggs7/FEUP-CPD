@@ -10,10 +10,9 @@ public class Player{
     private SocketChannel socketChannel;
     
     private int mmr; //Matchmaking rating mmr >= 0 && mmr <= 12
+    private long joinTime;
 
-    /*// player stats
-    private int level;
-    private int experience;*/
+    
 
 
     public Player(String username, SocketChannel socketChannel) {
@@ -21,7 +20,7 @@ public class Player{
         this.socketChannel = socketChannel;
 
         this.mmr = obtainStats(username).get(0);
-        
+        this.joinTime = 0;
     }
 
     public void setName(String name){
@@ -41,7 +40,7 @@ public class Player{
     }
 
     public void setMmr(){
-        this.mmr = 2;
+        this.mmr = 0;
     }
 
     public int getMmr(){
@@ -49,12 +48,12 @@ public class Player{
     }
 
     public void addToMmr(){
-        int maxMmr = 10;
-        if((this.mmr + 4) > maxMmr){
+        int maxMmr = 8;
+        if((this.mmr + 2) > maxMmr){
             mmr = maxMmr;
         }
         else{
-            this.mmr += 4;
+            this.mmr += 2;
         }
     }
 
@@ -92,9 +91,23 @@ public class Player{
         try{
             ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
             socketChannel.write(buffer);
+            System.out.println("Message sent to client: " + msg);
         }
         catch(IOException e){
             System.out.println("Error sending message to client");
         }
+    }
+
+    public long getJoinTime(){
+        return this.joinTime;
+    }
+
+    public void setJoinTime(long currentTimeMillis) {
+        this.joinTime = currentTimeMillis;
+    }
+
+    public boolean hasExceededMaxWaitingTime(long maxWaitingTime) {
+        long currentTime = System.currentTimeMillis();
+        return (currentTime - joinTime) > maxWaitingTime;
     }
 }
